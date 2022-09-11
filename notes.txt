@@ -1,0 +1,5 @@
+Speckle patterns S[i]
+S[i] forms a complete basis (like fourier transform)
+S[i] * object = number of bucket pixels
+now you have linear combination of S[i]
+elementwise multiplication with the image will give you matrix

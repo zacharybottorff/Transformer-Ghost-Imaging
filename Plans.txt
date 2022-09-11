@@ -1,0 +1,7 @@
+1. Improve the Transformer (or find another) to work better on this project
+2. Find new way to output image file (value based, not position) so that grayscale can work
+    Note: values of 0 currently do not work
+3. Create a method to input grayscale, not only binary
+4. Improve accuracy
+5. What if we don't use the same speckle patterns each time? Is there a correlation between speckle patterns and bucket intensity we don't know? This would likely have dependence on the object itself
+6. data compression?
