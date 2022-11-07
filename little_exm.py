@@ -11,25 +11,46 @@ import os
 
 def greedy_show(model, src, src_mask, trg,size_cont,src_save):
   # repeat 10 times
+  # TODO: much of this could be done outside of the loop to save time
   for ijk in range(10):
+    # Set for_show to be the decoded version of model with start_symbol=1
     for_show = greedy_decode(ijk,model, src, src_mask, trg, start_symbol=1)
-    result = for_show.reshape([1,for_show.shape[0]*for_show.shape[1] ])
+    # Set result to be for_show but as a 1 x (d0*d1) Tensor
+    result = for_show.reshape([1,for_show.shape[0]*for_show.shape[1]])
+    # Copy result into CPU memory
     result = result.cpu()
+    # Copy trg into CPU memory
     trg = trg.cpu()
+    # Make g a 1x(size_cont^2) Tensor filled with 0s
     g = torch.zeros(size_cont*size_cont)
-    g[result.squeeze () - 1] = 1
+    # First consider result with dimensions of length 1 removed, making it 1D
+    # Set given element of g to be 1
+    # TODO: examine dimensions
+    g[result.squeeze() - 1] = 1
+    # Reshape g to be size_cont x size_cont
     g = g.reshape(size_cont,size_cont)
+    # Make b a 1x(size_cont^2) Tensor filled with 0s
     b = torch.zeros(size_cont*size_cont)
+    # Set given element of b to be 1
+    # TODO: examine dimensions
     b[(trg[ijk,:] - 1)] = 1
+    # Reshape b to be size_cont x size_cont
     b = b.reshape(size_cont,size_cont)
+    # Set first and last elements to 0
+    # TODO: Generalize, make last elements b[-1,-1] and g[-1,-1]
     b[0,0] = 0
     g[0,0] = 0
     b[31,31] = 0
     g[31,31] = 0
+    # Convert b from Tensor into numpy array (process on CPU)
     b = b.numpy()
+    # Convert g from Tensor into numpy array (process on CPU)
     g = g.numpy()
+    # Set loss_raw to the sum of the elements of the absolute value of the difference between element ijk (loop iterator) of src_save and b
     loss_raw = abs(src_save[ijk]-b).sum()
+    # Set loss to the sum of the elements of the absolute value of the difference between g and b 
     loss = abs(g-b).sum()
+    # If loss < loss_raw, update src_save element ijk to be g
     if(loss<loss_raw):
       src_save[ijk] = g
   return src_save
@@ -38,18 +59,33 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
 
 
 def greedy_decode(ijk,model, src, src_mask, trg, start_symbol):
+    """
+    Take model and 
+    """
+    # Change matrix src to be only the two rows given by ijk and ijk+1
     src = src[ijk:ijk+1, :]
+    # Create Tensor of indices of nonzero values of the two rows of trg given by ijk and ijk+1
+    # Set int max_length to be the length of the first dimension of this Tensor
+    # Effectively, max_length = number of nonzero elements in the selected rows of trg
     max_length = trg[ijk:ijk+1,:].nonzero().shape[0]
+    # Set src_mask to only be its first two rows and columns
     src_mask = src_mask[0:1, 0:1, :]
+    # Set memory to be the encoded version of model using src and src_mask
+    # TODO: What is model?
     memory = model.encode(src, src_mask)
+    # Save ys on current CUDA device (GPU) as a 1x1 Tensor containing start_symbol
     ys = torch.ones(1, 1, dtype=torch.long).fill_(start_symbol).cuda()
-    # repeat max_length - 1 times
+    # Repeat max_length - 1 times
     for i in range(max_length - 1):
+        # Set out as decoded version of model
         out = model.decode(memory, src_mask, Variable(ys), Variable(subsequent_mask(ys.size(1)).type_as(src.data)))
+        # Set prob as the generator of model with dimensions given by elements of matrix out
         prob = model.generator(out[:, -1])
+        # Set throwaway variable and next_word (Tensors) as the maximum value element in dimension 1 of prob
         _, next_word = torch.max(prob, dim=1)
-        # make next_word refer to its item
+        # Make next_word into a scalar
         next_word = next_word.item()
+        # Concatenate (append) in dimension 1 ys and a 1x1 Tensor containing next_word (which is on CUDA GPU device)
         ys = torch.cat([ys, torch.ones(1, 1, dtype=torch.long).fill_(next_word).cuda()], dim=1)
     return ys
 
