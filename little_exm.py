@@ -55,7 +55,7 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         loss = abs(g-b).sum()
         # If loss < loss_raw, update src_save element ijk to be g
         if(loss<loss_raw):
-        src_save[ijk] = g
+            src_save[ijk] = g
     return src_save
 
 
