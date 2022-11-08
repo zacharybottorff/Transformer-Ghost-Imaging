@@ -1,0 +1,21 @@
+Folder introduction:
+Image is two set of pictures— number pic and smiling face pic, which can be read and showdirectly by python
+Result is sets of result of deep leaning network picture
+N_result is also sets of DL results but it is the result with artificial noise Programe introduction
+ittle_exm.py is the main program where you can adjust the network parameters
+When you wanna to try all the program, run this
+
+model_train_construct.py & transformer_badge.py the main functions of transformer network, do not need to adjust, watch some introduction of transformer in YouTube may help to understand
+copy_from_past.py the functions about data process and so on which need to be change according to the ability you want to achieve
+n_little_exm.py just a test program to test the noisy network, ignore it.
+Explanation about function in detail:
+Batch: generate the specified type of data which network need
+LoadData & DealDataset: process mnist picture
+LoadModel: when you wanna load a trained model, use it
+trasnFcn: a function adjust the size of pic
+npySave:save tensor(torch) matrix
+show_result: no use, which for test a old version network
+greedy_show & greedy_decode: use greedy algorithm to guess result, which used to output result
+trg_dealwith: process the data to type which can be accepted by transformer network
+src_dealwith: process the data to type which can be accepted by transformer network
+run_epoch: the main function which start train process

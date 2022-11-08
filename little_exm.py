@@ -253,8 +253,10 @@ DataLoaderName = MNIST
 batch = 10 #200
 imsize =[size_cont]
 criterion = nn.CrossEntropyLoss()
+# Construct blank model with structure
 model = make_model(V1, V2,N=6, d_model=512, d_ff=2048, h=8, dropout=0.1)
-model.load_state_dict(torch.load(readModelFile))#change
+# Read model file if there is existing one
+# model.load_state_dict(torch.load(readModelFile))#change
 model = model.cuda()
 model_opt = NoamOpt(model.src_embed[0].d_model, 1, 400,
                     torch.optim.Adam(model.parameters(), lr=0.005, betas=(0.9, 0.98), eps=1e-9))
