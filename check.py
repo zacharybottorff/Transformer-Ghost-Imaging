@@ -14,6 +14,7 @@ a = np.load('./zresult/SMILE_Ray_p5_0.npy') #32,32
 for i in range(10):
   # put image i in figure
   # TODO: consider different normalization modes of imshow()
+  # NOTE: may need to convert vmax to 1
   plt.imshow(a[i], cmap='gray', vmin=0, vmax=255)
   # turn off axis
   plt.axis('off')
