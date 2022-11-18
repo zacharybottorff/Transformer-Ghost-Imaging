@@ -264,6 +264,7 @@ model_opt = NoamOpt(model.src_embed[0].d_model, 1, 400,
 src_save = np.ones([10,32,32])*900
 for epoch in range(1000):
     model.train()
+    print("Epoch: ", epoch)
     start = time.time()
     src_save = run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_save)
  
