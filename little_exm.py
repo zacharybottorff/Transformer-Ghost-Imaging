@@ -40,11 +40,10 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         # Reshape b to be size_cont x size_cont
         b = b.reshape(size_cont,size_cont)
         # Set first and last elements to 0
-        # TODO: Generalize, make last elements b[-1,-1] and g[-1,-1]
         b[0,0] = 0
         g[0,0] = 0
-        b[31,31] = 0
-        g[31,31] = 0
+        b[-1,-1] = 0
+        g[-1,-1] = 0
         # Convert b from Tensor into numpy array (process on CPU)
         b = b.numpy()
         # Convert g from Tensor into numpy array (process on CPU)

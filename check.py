@@ -13,15 +13,9 @@ a = np.load('./zresult/SMILE_Ray_p5_0.npy') #32,32
 # repeat for 10 images
 for i in range(10):
   # put image i in figure
+  # TODO: consider different normalization modes of imshow()
   plt.imshow(a[i])
   # turn off axis
   plt.axis('off')
   # display open figure
   plt.show()
-
-# put image i=9 in figure
-plt.imshow(a[i])
-# turn off axis
-plt.axis('off')
-# display open figure
-plt.show()
