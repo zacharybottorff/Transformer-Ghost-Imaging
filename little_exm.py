@@ -262,7 +262,7 @@ model_opt = NoamOpt(model.src_embed[0].d_model, 1, 400,
                     torch.optim.Adam(model.parameters(), lr=0.005, betas=(0.9, 0.98), eps=1e-9))
 # src_save = np.load(os.path.join(SaveModelFile, 'lab_trg_32_JUly20.npy'))
 src_save = np.ones([10,32,32])*900
-for epoch in range(100):
+for epoch in range(1000):
     model.train()
     start = time.time()
     src_save = run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_save)
