@@ -25,7 +25,7 @@ class Batch(object):
             # self.ntokens = (self.trg_y != pad).sum().item()
             self.ntokens = (self.trg_y.shape[1])
             # self.ntokens = self.trg_y.shape[1]
-
+    # Set make_std_mask(tgt, pad) a static method, so it can be called even without creating a Batch object
     @staticmethod
     def make_std_mask(tgt, pad):
         """

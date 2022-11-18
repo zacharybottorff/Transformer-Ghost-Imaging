@@ -13,6 +13,8 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
     """
     Update src_save based on repeated greedy_decode().
     """
+    if __debug__:
+        print("Calling greedy_show()")
     # repeat 10 times
     # TODO: much of this could be done outside of the loop to save time
     for ijk in range(10):
@@ -64,6 +66,8 @@ def greedy_decode(ijk,model, src, src_mask, trg, start_symbol):
     """
     Take model and decode it.
     """
+    if __debug__:
+        print("Calling greedy_decode()")
     # Change matrix src to be only the two rows given by ijk and ijk+1
     src = src[ijk:ijk+1, :]
     # Create Tensor of indices of nonzero values of the two rows of trg given by ijk and ijk+1
@@ -95,6 +99,8 @@ def trg_dealwith(input_image, imsize):
     """
     TODO: Determine effect of this function
     """
+    if __debug__:
+        print("Calling trg_dealwith()")
     # Set arrange_likeu to 1D Tensor containing integer values [1, imsize[0]^2 + 1]
     arrange_likeu = torch.arange(1, imsize[0] * imsize[0] + 1)
     # Reshape input_image so that second dimension (dimension 1) is imsize[0]^2 in length
@@ -135,6 +141,8 @@ def run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_sav
     """
     Standard Training and Logging Function
     """
+    if __debug__:
+        print("Calling run_epoch()")
     # Set image size to 32
     imsize = [32]
     # Load readImageFile and save as input_image
@@ -162,6 +170,8 @@ def src_dealwith(img_ori, pattern,V2):
     """
     Combine image with speckle pattern.
     """
+    if __debug__:
+        print("Calling src_dealwith()")
     # Remove dimensions of length 1 from pattern
     pattern = pattern.squeeze()
     # Reshape pattern to be 1 x (original dimension 0 length) x 32 x 32
