@@ -183,11 +183,11 @@ def src_dealwith(img_ori, pattern,V2):
     image = pattern * img_ori
     # Convert image from numpy array to torch Tensor
     image = torch.from_numpy(image)
-    # Set I to be 32 x 32 Tensor, the sum of elements of image within dimensions 2 and 3
+    # Set I to be 32 x 32 Tensor, result of dimensions 2 and 3 summed over in image
     I = torch.sum(image, (2, 3))
     # Copy I to default CUDA device (GPU)
     I = I.cuda()
-    # Set I_min and I_index to be the minimum value in dimension 1 of I
+    # Set I_min and I_index to have the minimum value in dimension 1 of I
     I_min, I_index = torch.min(I,1)
     # Reshape I_min to have original length in dimension 0 and length 1 in dimension 1
     I_min = I_min.reshape(I.shape[0],1)
