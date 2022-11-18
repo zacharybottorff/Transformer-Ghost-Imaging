@@ -30,6 +30,7 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         g = torch.zeros(size_cont*size_cont)
         # First consider result with dimensions of length 1 removed, making it 1D
         # Set given element of g to be 1
+        # URGENT: Do we want to set to 1?
         # TODO: examine dimensions
         g[result.squeeze() - 1] = 1
         # Reshape g to be size_cont x size_cont
@@ -37,6 +38,7 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         # Make b a 1x(size_cont^2) Tensor filled with 0s
         b = torch.zeros(size_cont*size_cont)
         # Set given element of b to be 1
+        # URGENT: Do we want to set to 1?
         # TODO: examine dimensions
         b[(trg[ijk,:] - 1)] = 1
         # Reshape b to be size_cont x size_cont
@@ -211,8 +213,15 @@ def src_dealwith(img_ori, pattern,V2):
     else:
         # Update I
         I = I/(I_max+1)*V2
-    # Cast elements of I to int
+    # Cast elements of I to int, rounding down
+    # URGENT: This may be where rounding takes place
+    if __debug__:
+        print("Before I=I.int():")
+        print(I)
     I = I.int()
+    if __debug__:
+        print("After I=I.int():")
+        print(I)
     return I
 
 

@@ -18,6 +18,7 @@ class Batch(object):
         self.src_mask = (src != pad).unsqueeze(-2)
         self.src_mask = self.src_mask.cuda()
         if trg is not None:
+            # URGENT: Rounding may also take place here
             trg = trg.to(int)
             self.trg = trg[:, :-1]
             self.trg_y = trg[:, 1:]
