@@ -13,6 +13,8 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
     """
     Update src_save based on repeated greedy_decode().
     """
+    if __debug__:
+        print("Calling greedy_show()")
     # repeat 10 times
     # TODO: much of this could be done outside of the loop to save time
     for ijk in range(10):
@@ -28,6 +30,7 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         g = torch.zeros(size_cont*size_cont)
         # First consider result with dimensions of length 1 removed, making it 1D
         # Set given element of g to be 1
+        # URGENT: Do we want to set to 1?
         # TODO: examine dimensions
         g[result.squeeze() - 1] = 1
         # Reshape g to be size_cont x size_cont
@@ -35,16 +38,16 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         # Make b a 1x(size_cont^2) Tensor filled with 0s
         b = torch.zeros(size_cont*size_cont)
         # Set given element of b to be 1
+        # URGENT: Do we want to set to 1?
         # TODO: examine dimensions
         b[(trg[ijk,:] - 1)] = 1
         # Reshape b to be size_cont x size_cont
         b = b.reshape(size_cont,size_cont)
         # Set first and last elements to 0
-        # TODO: Generalize, make last elements b[-1,-1] and g[-1,-1]
         b[0,0] = 0
         g[0,0] = 0
-        b[31,31] = 0
-        g[31,31] = 0
+        b[-1,-1] = 0
+        g[-1,-1] = 0
         # Convert b from Tensor into numpy array (process on CPU)
         b = b.numpy()
         # Convert g from Tensor into numpy array (process on CPU)
@@ -65,6 +68,8 @@ def greedy_decode(ijk,model, src, src_mask, trg, start_symbol):
     """
     Take model and decode it.
     """
+    if __debug__:
+        print("Calling greedy_decode()")
     # Change matrix src to be only the two rows given by ijk and ijk+1
     src = src[ijk:ijk+1, :]
     # Create Tensor of indices of nonzero values of the two rows of trg given by ijk and ijk+1
@@ -96,6 +101,8 @@ def trg_dealwith(input_image, imsize):
     """
     TODO: Determine effect of this function
     """
+    if __debug__:
+        print("Calling trg_dealwith()")
     # Set arrange_likeu to 1D Tensor containing integer values [1, imsize[0]^2 + 1]
     arrange_likeu = torch.arange(1, imsize[0] * imsize[0] + 1)
     # Reshape input_image so that second dimension (dimension 1) is imsize[0]^2 in length
@@ -136,6 +143,8 @@ def run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_sav
     """
     Standard Training and Logging Function
     """
+    if __debug__:
+        print("Calling run_epoch()")
     # Set image size to 32
     imsize = [32]
     # Load readImageFile and save as input_image
@@ -163,6 +172,8 @@ def src_dealwith(img_ori, pattern,V2):
     """
     Combine image with speckle pattern.
     """
+    if __debug__:
+        print("Calling src_dealwith()")
     # Remove dimensions of length 1 from pattern
     pattern = pattern.squeeze()
     # Reshape pattern to be 1 x (original dimension 0 length) x 32 x 32
@@ -174,11 +185,11 @@ def src_dealwith(img_ori, pattern,V2):
     image = pattern * img_ori
     # Convert image from numpy array to torch Tensor
     image = torch.from_numpy(image)
-    # Set I to be 32 x 32 Tensor, the sum of elements of image within dimensions 2 and 3
+    # Set I to be 32 x 32 Tensor, result of dimensions 2 and 3 summed over in image
     I = torch.sum(image, (2, 3))
     # Copy I to default CUDA device (GPU)
     I = I.cuda()
-    # Set I_min and I_index to be the minimum value in dimension 1 of I
+    # Set I_min and I_index to have the minimum value in dimension 1 of I
     I_min, I_index = torch.min(I,1)
     # Reshape I_min to have original length in dimension 0 and length 1 in dimension 1
     I_min = I_min.reshape(I.shape[0],1)
@@ -202,8 +213,15 @@ def src_dealwith(img_ori, pattern,V2):
     else:
         # Update I
         I = I/(I_max+1)*V2
-    # Cast elements of I to int
+    # Cast elements of I to int, rounding down
+    # URGENT: This may be where rounding takes place
+    if __debug__:
+        print("Before I=I.int():")
+        print(I)
     I = I.int()
+    if __debug__:
+        print("After I=I.int():")
+        print(I)
     return I
 
 

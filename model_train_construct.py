@@ -18,6 +18,7 @@ class Batch(object):
         self.src_mask = (src != pad).unsqueeze(-2)
         self.src_mask = self.src_mask.cuda()
         if trg is not None:
+            # URGENT: Rounding may also take place here
             trg = trg.to(int)
             self.trg = trg[:, :-1]
             self.trg_y = trg[:, 1:]
@@ -25,7 +26,7 @@ class Batch(object):
             # self.ntokens = (self.trg_y != pad).sum().item()
             self.ntokens = (self.trg_y.shape[1])
             # self.ntokens = self.trg_y.shape[1]
-
+    # Set make_std_mask(tgt, pad) a static method, so it can be called even without creating a Batch object
     @staticmethod
     def make_std_mask(tgt, pad):
         """
