@@ -235,7 +235,7 @@ readImageFile = "./image/Smile_image.npy"
 # readPatternFile = "/scratch/user/taopeng/REAL_TRUE_white/data/pattern/Pink_SR3p.npy"
 # readPatternFile = "/scratch/user/taopeng/REAL_TRUE_white/data/pattern/Pink_SR5p.npy"
 # readPatternFile = "/scratch/user/taopeng/REAL_TRUE_white/data/pattern/Ray_SR5p.npy"
-readPatternFile = "./pattern/ray_p5.npy"
+readPatternFile = "./pattern/pink_p5.npy"
 
 # readModelFile = "/scratch/user/taopeng/REAL_TRUE_white/data/Noise_Pink_SR2p_0/Modelpara.pth"
 # readModelFile = "/scratch/user/taopeng/REAL_TRUE_white/data/Noise_Pink_SR3p_0/Modelpara.pth"
@@ -258,7 +258,7 @@ readPatternFile = "./pattern/ray_p5.npy"
 # save_name = './result/SMILE_PINK_SR3p_0.npy'
 # save_name = './result/SMILE_Pink_SR5p_10.npy'
 # save_name = './result/SMILE_Ray_SR5p_10.npy'
-save_name = './zresult/SMILE_Ray_p5_0.npy'
+save_name = './zresult/SMILE_Pink_p5.npy'
 
 
 
