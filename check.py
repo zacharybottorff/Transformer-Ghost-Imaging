@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import os
 
 # Array of images
-a = np.load('./zresult/SMILE_Pink_p5.npy') #32,32
+a = np.load('./zresult/SMILE_Pink_p5_10000.npy') #32,32
 
 # Original images
 b = np.load('./image/Smile_image.npy')
