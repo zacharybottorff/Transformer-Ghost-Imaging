@@ -247,7 +247,7 @@ readPatternFile = "./pattern/pink_p5.npy"
 # readModelFile = "/scratch/user/taopeng/REAL_TRUE_white/data/SMILE_Pink_SR5p_10/Modelpara.pth"
 # readModelFile = "/scratch/user/taopeng/REAL_TRUE_white/data/SMILE_Ray_SR5p_10/Modelpara.pth"
 # readModelFile = "/scratch/user/taopeng/REAL_TRUE_white/data/SMILE_Ray_SR15p_0/Modelpara.pth"
-# readModelFile = "./models/test_Modelpara.pth"
+readModelFile = "./models/test_Modelpara.pth"
 
 
 # save_name = './result/Noise_Pink_SR2p_0.npy'
@@ -281,8 +281,8 @@ model_opt = NoamOpt(model.src_embed[0].d_model, 1, 400,
                     torch.optim.Adam(model.parameters(), lr=0.005, betas=(0.9, 0.98), eps=1e-9))
 # src_save = np.load(os.path.join(SaveModelFile, 'lab_trg_32_JUly20.npy'))
 src_save = np.ones([10,32,32])*900
-for epoch in range(10000):
-    model.train()
+for epoch in range(1000):
+    # model.train()
     print("Epoch: ", epoch + 1)
     start = time.time()
     src_save = run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_save)
