@@ -259,7 +259,7 @@ readModelFile = "./models/test_Modelpara.pth"
 # save_name = './result/SMILE_PINK_SR3p_0.npy'
 # save_name = './result/SMILE_Pink_SR5p_10.npy'
 # save_name = './result/SMILE_Ray_SR5p_10.npy'
-save_name = './zresult/SMILE_Pink_p5_10000.npy'
+save_name = './zresult/SMILE_Pink_p5_withmodel_notrain.npy'
 
 
 
