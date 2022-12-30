@@ -31,7 +31,7 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         # Set given element of g to be 1
         # URGENT: Do we want to set to 1?
         # TODO: examine dimensions
-        g[result.squeeze() - 1] = 1
+        g[result.squeeze() - 1] = 255
         # Reshape g to be size_cont x size_cont
         g = g.reshape(size_cont,size_cont)
         # Make b a 1x(size_cont^2) Tensor filled with 0s
@@ -39,7 +39,7 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         # Set given element of b to be 1
         # URGENT: Do we want to set to 1?
         # TODO: examine dimensions
-        b[(trg[ijk,:] - 1)] = 1
+        b[(trg[ijk,:] - 1)] = 255
         # Reshape b to be size_cont x size_cont
         b = b.reshape(size_cont,size_cont)
         # Set first and last elements to 0

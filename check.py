@@ -31,7 +31,7 @@ for i in range(10):
   
   fig.add_subplot(rows, columns, 2)
   
-  plt.imshow(a[i], cmap='gray', vmin=0, vmax=1)
+  plt.imshow(a[i], cmap='gray', vmin=0, vmax=255)
   
   plt.axis('off')
   
