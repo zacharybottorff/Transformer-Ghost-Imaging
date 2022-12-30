@@ -15,8 +15,9 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
     """
     if __debug__:
         print("Calling greedy_show()")
+    # copy trg into CPU memory
+    trg = trg.cpu()
     # repeat 10 times
-    # TODO: much of this could be done outside of the loop to save time
     for ijk in range(10):
         # Set for_show to be the decoded version of model with start_symbol=1
         for_show = greedy_decode(ijk,model, src, src_mask, trg, start_symbol=1)
@@ -24,8 +25,6 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         result = for_show.reshape([1,for_show.shape[0]*for_show.shape[1]])
         # Copy result into CPU memory
         result = result.cpu()
-        # Copy trg into CPU memory
-        trg = trg.cpu()
         # Make g a 1x(size_cont^2) Tensor filled with 0s
         g = torch.zeros(size_cont*size_cont)
         # First consider result with dimensions of length 1 removed, making it 1D
@@ -60,10 +59,6 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         if(loss<loss_raw):
             src_save[ijk] = g
     return src_save
-
-
-
-
 def greedy_decode(ijk,model, src, src_mask, trg, start_symbol):
     """
     Take model and decode it.
@@ -123,7 +118,7 @@ def trg_dealwith(input_image, imsize):
         trg_pice = trg[index_x, :]
         # Set trg_nonzero to be Tensor of indices of nonzero elements of trg_pice
         trg_nonzero = trg_pice.nonzero()
-        # TODO: Figure out what this does. Remove zero elements?
+        # Remove dimensions of length 1 from places where dimension 0 element is nonzero?
         trg_pice = trg_pice[trg_nonzero].squeeze()
         # Set row index_x of trg_batch to be trg_pice (up to length of trg_pice)
         trg_batch[index_x,0:trg_pice.shape[0]] = trg_pice
@@ -247,7 +242,7 @@ readPatternFile = "./pattern/pink_p5.npy"
 # readModelFile = "/scratch/user/taopeng/REAL_TRUE_white/data/SMILE_Pink_SR5p_10/Modelpara.pth"
 # readModelFile = "/scratch/user/taopeng/REAL_TRUE_white/data/SMILE_Ray_SR5p_10/Modelpara.pth"
 # readModelFile = "/scratch/user/taopeng/REAL_TRUE_white/data/SMILE_Ray_SR15p_0/Modelpara.pth"
-readModelFile = "./models/test_Modelpara.pth"
+# readModelFile = "./models/test_Modelpara.pth"
 
 
 # save_name = './result/Noise_Pink_SR2p_0.npy'
@@ -275,16 +270,16 @@ criterion = nn.CrossEntropyLoss()
 # Construct blank model with structure
 model = make_model(V1, V2,N=6, d_model=512, d_ff=2048, h=8, dropout=0.1)
 # Read model file if there is existing one
-model.load_state_dict(torch.load(readModelFile))#change
+# model.load_state_dict(torch.load(readModelFile))#change
 model = model.cuda()
 model_opt = NoamOpt(model.src_embed[0].d_model, 1, 400,
                     torch.optim.Adam(model.parameters(), lr=0.005, betas=(0.9, 0.98), eps=1e-9))
 # src_save = np.load(os.path.join(SaveModelFile, 'lab_trg_32_JUly20.npy'))
 src_save = np.ones([10,32,32])*900
 for epoch in range(1000):
-    # model.train()
-    model.eval()
+    model.train()
+    # model.eval()
     print("Epoch: ", epoch + 1)
     start = time.time()
     src_save = run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_save)
- 
+torch.save(model.state_dict(), './models/grayscale_model_alpha')
