@@ -244,6 +244,7 @@ readPatternFile = "./pattern/pink_p5.npy"
 # readModelFile = "/scratch/user/taopeng/REAL_TRUE_white/data/SMILE_Ray_SR15p_0/Modelpara.pth"
 # readModelFile = "./models/test_Modelpara.pth"
 
+saveModelFile = './zmodel/grayscale_model_alpha'
 
 # save_name = './result/Noise_Pink_SR2p_0.npy'
 # save_name = './result/Noise_Pink_SR3p_0.npy'
@@ -282,4 +283,4 @@ for epoch in range(1000):
     print("Epoch: ", epoch + 1)
     start = time.time()
     src_save = run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_save)
-torch.save(model.state_dict(), './models/grayscale_model_alpha')
+torch.save(model.state_dict(), saveModelFile)
