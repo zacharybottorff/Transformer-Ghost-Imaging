@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import torch
 import torchvision
+from copy_from_past import *
 
 
 # change this to 3 to upgrade grayscale images to RGB size

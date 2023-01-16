@@ -3,6 +3,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math, copy, time
+import logging
+
+hostlogger = logging.getLogger("main_logger.module")
 
 class EncoderDecoder(nn.Module):
     """
@@ -28,24 +31,21 @@ class EncoderDecoder(nn.Module):
         """
         Take in and process masked src and target sequences.
         """
-        if __debug__:
-            print("Calling EncoderDecoder.forward()")
+        hostlogger.info("Calling EncoderDecoder.forward()")
         return self.decode(self.encode(src, src_mask), src_mask, tgt, tgt_mask)
 
     def encode(self, src, src_mask):
         """
         Use encoder data attribute with given src and src_mask.
         """
-        if __debug__:
-            print("Calling EncoderDecoder.encode()")
+        hostlogger.info("Calling EncoderDecoder.encode()")
         return self.encoder(self.src_embed(src), src_mask)
 
     def decode(self, memory, src_mask, tgt, tgt_mask):
         """
         Use decoder data attribute with given memory, src_mask, tgt, and tgt_mask.
         """
-        if __debug__:
-            print("Calling EncoderDecoder.decode()")
+        hostlogger.info("Calling EncoderDecoder.decode()")
         return self.decoder(self.tgt_embed(tgt), memory, src_mask, tgt_mask)
 
 class Generator(nn.Module):
@@ -64,8 +64,7 @@ class Generator(nn.Module):
         """
         Process tensor x one step.
         """
-        if __debug__:
-            print("Calling Generator.forward()")
+        hostlogger.info("Calling Generator.forward()")
         # Perform softmax followed by log on tensor proj(x) in dimension -1
         return F.log_softmax(self.proj(x), dim=-1)
 
@@ -73,8 +72,7 @@ def clones(module, N):
     """
     Produce N identical layers.
     """
-    if __debug__:
-            print("Calling clones()")
+    hostlogger.info("Calling clones()")
     # Create a torch.nn.ModuleList that contains N deep copies of module parameter
     return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
 
@@ -95,8 +93,7 @@ class Encoder(nn.Module):
         """
         Pass the input tensor (and mask) through each layer in turn.
         """
-        if __debug__:
-            print("Calling Encoder.forward()")
+        hostlogger.info("Calling Encoder.forward()")
         for layer in self.layers:
             x = layer(x, mask)
         return self.norm(x)
@@ -120,8 +117,7 @@ class LayerNorm(nn.Module):
         """
         Normalize the tensor.
         """
-        if __debug__:
-            print("Calling LayerNorm.forward()")
+        hostlogger.info("Calling LayerNorm.forward()")
         mean = x.mean(-1, keepdim=True)
         std = x.std(-1, keepdim=True)
         return self.a_2 * (x - mean) / (std + self.eps) + self.b_2
@@ -145,8 +141,7 @@ class SublayerConnection(nn.Module):
         """
         Apply residual connection to any sublayer with the same size.
         """
-        if __debug__:
-            print("Calling SublayerConnection.forward()")
+        hostlogger.info("Calling SublayerConnection.forward()")
         return x + self.dropout(sublayer(self.norm(x)))
 
 class EncoderLayer(nn.Module):
@@ -170,8 +165,7 @@ class EncoderLayer(nn.Module):
         """
         Apply EncoderLayer to an input tensor with a given mask.
         """
-        if __debug__:
-            print("Calling EncoderLayer.forward()")
+        hostlogger.info("Calling EncoderLayer.forward()")
         # Change tensor x to be row 0 of EncoderLayer.sublayer
         x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, mask))
         # Return row 1 of EncoderLayer.sublayer using input tensor and Encoderlayer.feedforward
@@ -194,8 +188,7 @@ class Decoder(nn.Module):
         """
         Pass input tensor (and masks) through each layer in turn.
         """
-        if __debug__:
-            print("Calling Decoder.forward()")
+        hostlogger.info("Calling Decoder.forward()")
         for layer in self.layers:
             x = layer(x, memory, src_mask, tgt_mask)
         return self.norm(x)
@@ -223,8 +216,7 @@ class DecoderLayer(nn.Module):
         """
         Pass the input tensor through each layer to decode with attention.
         """
-        if __debug__:
-            print("Calling DecoderLayer.forward()")
+        hostlogger.info("Calling DecoderLayer.forward()")
         m = memory
         x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, tgt_mask))
         x = self.sublayer[1](x, lambda x: self.src_attn(x, m, m, src_mask))
@@ -234,8 +226,7 @@ def subsequent_mask(size):
     """
     Mask out subsequent positions. This prevents training from accessing later information.
     """
-    if __debug__:
-            print("Calling subsequent_mask()")
+    hostlogger.info("Calling subsequent_mask()")
     # Create a tuple with 1 and size x size
     attn_shape = (1, size, size)
     # Creates a numpy array of ones and zeroes, with the upper triangle being 1 and the rest being 0
@@ -248,9 +239,8 @@ def attention(query, key, value, mask=None, dropout=None):
     """
     Compute 'Scaled Dot Product Attention'
     """
-    if __debug__:
-            print("Calling attention()")
-    #
+    hostlogger.info("Calling attention()")
+    # Set d_k to be size of last dimension of query
     d_k = query.size(-1)
     # Create tensor of scores ...
     # consisting of matrix product of parameter query and ...
@@ -302,8 +292,7 @@ class MultiHeadedAttention(nn.Module):
         """
         Pass Tensor through multiheaded attention technique.
         """
-        if __debug__:
-            print("Calling MultiHeadedAttention.forward()")
+        hostlogger.info("Calling MultiHeadedAttention.forward()")
         # If a mask is specified
         if mask is not None:
             # Same mask applied to all h heads.
@@ -344,8 +333,7 @@ class PositionwiseFeedForward(nn.Module):
         """
         Put Tensor through PositionwiseFeedForward technique. Passes through w_1, then rectified linear unit, then dropout, then w_2.
         """
-        if __debug__:
-            print("Calling PositionwiseFeedForward.forward()")
+        hostlogger.info("Calling PositionwiseFeedForward.forward()")
         return self.w_2(self.dropout(F.relu(self.w_1(x))))
 
 class Embeddings(nn.Module):
@@ -367,8 +355,7 @@ class Embeddings(nn.Module):
         """
         Pass tensor through Embeddings. Multiply the lookup table elements by sqrt(dimensions)
         """
-        if __debug__:
-            print("Calling Embeddings.forward()")
+        hostlogger.info("Calling Embeddings.forward()")
         return self.lut(x) * math.sqrt(self.d_model)
 
 class PositionalEncoding(nn.Module):
@@ -406,8 +393,7 @@ class PositionalEncoding(nn.Module):
         """
         Apply the PE function to the input Tensor and apply dropout.
         """
-        if __debug__:
-            print("Calling PositionalEncoding.forward()")
+        hostlogger.info("Calling PositionalEncoding.forward()")
         x = x + self.pe[:, :x.size(1)]
         return self.dropout(x)
 
@@ -415,8 +401,7 @@ def make_model(src_vocab, tgt_vocab, N=12, d_model=1024, d_ff=2048, h=8, dropout
     """
     Helper: Construct a model from hyperparameters.
     """
-    if __debug__:
-            print("Calling make_model()")
+    hostlogger.info("Calling make_model()")
     # Set c to be general deep copy operation
     c = copy.deepcopy
     # Set attn to be MultiHeadedAttention Module with given h and d_model from parameters
@@ -451,6 +436,7 @@ class SimpleLossCompute(object):
     """
     # Default constructor for SimpleLossCompute
     def __init__(self, generator, criterion, opt=None):
+        hostlogger.info("Calling SimpleLossCompute as object")        
         # Set data attribute generator to be parameter generator
         self.generator = generator
         # Set data attribute criterion to be parameter criterion
@@ -460,8 +446,7 @@ class SimpleLossCompute(object):
 
     # Define behavior upon function call
     def __call__(self, x, y, norm):
-        if __debug__:
-            print("Calling SimpleLossCompute as function")
+        hostlogger.info("Calling SimpleLossCompute as function")
         # # x = [2,3135,512]
         # # y = [2,3135]
         # Apply generator to input x
