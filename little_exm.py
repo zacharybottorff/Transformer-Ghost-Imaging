@@ -30,9 +30,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math, copy, time
-import transformer_badge
-import model_train_construct
-import copy_from_past
+from transformer_badge import *
+from model_train_construct import *
+from copy_from_past import *
 import scipy.io as scio
 import os
 
@@ -299,7 +299,7 @@ def src_dealwith(img_ori, pattern,V2):
 # !!!!!!!!!!!ray15 nuber 改900
 #!!!!!!!!!!!!!!!!检查是不是V2
 # readImageFile = "/scratch/user/taopeng/REAL_TRUE_white/A_WHR_MAKE_RESULT/image/Number_Image.npy"
-readImageFile = "./image/Smile_image_grayscale.npy"
+readImageFile = "./image/Smile_image.npy"
 
 # readPatternFile = "/scratch/user/taopeng/REAL_TRUE_white/data/pattern/Pink_SR2p.npy"
 # readPatternFile = "/scratch/user/taopeng/REAL_TRUE_white/data/pattern/Pink_SR3p.npy"
