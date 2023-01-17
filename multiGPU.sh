@@ -4,7 +4,7 @@
 #SBATCH --job-name=Test_Grayscale_1
 #SBATCH --time=00:05:00                         #Request hr:min:sec
 #SBATCH --ntasks=1                              #Request 1 task
-#SBATCH --mem=1G                               #Request 2560MB (2.5GB) per node
+#SBATCH --mem=5G                               #Request 2560MB (2.5GB) per node
 #SBATCH --output=UU.%j                          #Send stdout/err to "Example5Out.[jobID]"
 #SBATCH --gres=gpu:1	                        #Request 1 GPU per node can be 1 or 2
 #SBATCH --partition=gpu                         #Request the GPU partition/queue

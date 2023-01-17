@@ -129,7 +129,7 @@ def greedy_decode(ijk,model, src, src_mask, trg, start_symbol):
     for i in range(max_length - 1):
         mainlogger.debug("i = %s", i)
         # Set out as decoded version of model
-        out = model.decode(memory, src_mask, Variable(ys), Variable(transformer.subsequent_mask(ys.size(1)).type_as(src.data)))
+        out = model.decode(memory, src_mask, model_train.Variable(ys), model_train.Variable(transformer.subsequent_mask(ys.size(1)).type_as(src.data)))
         mainlogger.debug("out = %s", out)
         # Set prob as the generator of model with dimensions given by elements of matrix out
         prob = model.generator(out[:, -1])
