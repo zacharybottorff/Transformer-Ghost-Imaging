@@ -30,9 +30,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math, copy, time
-from transformer_badge import *
-from model_train_construct import *
-from copy_from_past import *
+import transformer_badge as transformer
+import model_train_construct as model_train
+import copy_from_past as past
 import scipy.io as scio
 import os
 
@@ -128,7 +128,7 @@ def greedy_decode(ijk,model, src, src_mask, trg, start_symbol):
     for i in range(max_length - 1):
         mainlogger.debug("i =", i)
         # Set out as decoded version of model
-        out = model.decode(memory, src_mask, Variable(ys), Variable(subsequent_mask(ys.size(1)).type_as(src.data)))
+        out = model.decode(memory, src_mask, Variable(ys), Variable(transformer.subsequent_mask(ys.size(1)).type_as(src.data)))
         mainlogger.debug("out =", out)
         # Set prob as the generator of model with dimensions given by elements of matrix out
         prob = model.generator(out[:, -1])
@@ -222,7 +222,7 @@ def run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_sav
     trg_tender = trg_dealwith(input_image,imsize)
     mainlogger.debug("trg_tender =", trg_tender)
     # Initialize a batch with src = src_tender, trg = trg_tender, and pad = 0
-    batch = Batch(src_tender, trg_tender, 0)
+    batch = model_train.Batch(src_tender, trg_tender, 0)
     mainlogger.debug("batch =", batch)
     # Update src_save through repeated greedy_decode()
     src_save = greedy_show(model, batch.src, batch.src_mask, batch.trg, size_cont,src_save)
@@ -344,12 +344,12 @@ batch = 10 #200
 imsize =[size_cont]
 criterion = nn.CrossEntropyLoss()
 # Construct blank model with structure
-model = make_model(V1, V2,N=6, d_model=512, d_ff=2048, h=8, dropout=0.1)
+model = transformer.make_model(V1, V2,N=6, d_model=512, d_ff=2048, h=8, dropout=0.1)
 # Read model file if there is existing one
 # model.load_state_dict(torch.load(readModelFile))#change
 model = model.cuda()
-model_opt = NoamOpt(model.src_embed[0].d_model, 1, 400,
-                    torch.optim.Adam(model.parameters(), lr=0.005, betas=(0.9, 0.98), eps=1e-9))
+model_opt = model_train.NoamOpt(model.src_embed[0].d_model, 1, 400,
+                                torch.optim.Adam(model.parameters(), lr=0.005, betas=(0.9, 0.98), eps=1e-9))
 # src_save = np.load(os.path.join(SaveModelFile, 'lab_trg_32_JUly20.npy'))
 src_save = np.ones([10,32,32])*900
 for epoch in range(1000):

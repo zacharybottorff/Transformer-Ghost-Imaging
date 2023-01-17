@@ -1,7 +1,6 @@
 from ast import Num
-from transformer_badge import *
-from model_train_construct import *
-from model_train_construct import *
+import transformer_badge as transformer
+import model_train_construct as model_train
 from typing import Pattern
 from torch.utils.data import Dataset,dataloader,TensorDataset
 from torch.autograd import Variable
@@ -19,34 +18,34 @@ import math
 
 
 
-class Batch(object):
-    """
-    Object for holding a batch of data with mask during training.
-    """
+# class Batch(object):
+#     """
+#     Object for holding a batch of data with mask during training.
+#     """
 
-    def __init__(self, src, trg=None, pad=0):
-        self.src = src
-        self.src_mask = (src != pad).unsqueeze(-2)
-        self.src_mask = self.src_mask.cuda()
-        if trg is not None:
-            trg = trg.to(int)
-            self.trg = trg[:, :-1]
-            self.trg_y = trg[:, 1:]
-            self.trg_mask = self.make_std_mask(self.trg, pad)
-            # self.ntokens = (self.trg_y != pad).sum().item()
-            self.ntokens = (self.trg_y.shape[1])
-            # self.ntokens = self.trg_y.shape[1]
+#     def __init__(self, src, trg=None, pad=0):
+#         self.src = src
+#         self.src_mask = (src != pad).unsqueeze(-2)
+#         self.src_mask = self.src_mask.cuda()
+#         if trg is not None:
+#             trg = trg.to(int)
+#             self.trg = trg[:, :-1]
+#             self.trg_y = trg[:, 1:]
+#             self.trg_mask = self.make_std_mask(self.trg, pad)
+#             # self.ntokens = (self.trg_y != pad).sum().item()
+#             self.ntokens = (self.trg_y.shape[1])
+#             # self.ntokens = self.trg_y.shape[1]
 
-    @staticmethod
-    def make_std_mask(tgt, pad):
-        """
-        Create a mask to hide padding and future words.
-        """
+#     @staticmethod
+#     def make_std_mask(tgt, pad):
+#         """
+#         Create a mask to hide padding and future words.
+#         """
 
-        tgt_mask = (tgt != pad).unsqueeze(-2)
-        aba = subsequent_mask(tgt.size(-1)).cuda()
-        tgt_mask = tgt_mask & aba
-        return tgt_mask
+#         tgt_mask = (tgt != pad).unsqueeze(-2)
+#         aba = subsequent_mask(tgt.size(-1)).cuda()
+#         tgt_mask = tgt_mask & aba
+#         return tgt_mask
 
 class DealDataset(Dataset):
     """

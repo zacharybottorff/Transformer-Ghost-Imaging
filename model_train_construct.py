@@ -3,9 +3,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math, copy, time
-from transformer_badge import *
+import transformer_badge as transformer
 from torch.autograd import Variable
-from copy_from_past import *
+import copy_from_past as past
 
 
 class Batch(object):
@@ -34,7 +34,7 @@ class Batch(object):
         """
 
         tgt_mask = (tgt != pad).unsqueeze(-2)
-        aba = subsequent_mask(tgt.size(-1)).cuda()
+        aba = transformer.subsequent_mask(tgt.size(-1)).cuda()
         tgt_mask = tgt_mask & aba
         return tgt_mask
 
