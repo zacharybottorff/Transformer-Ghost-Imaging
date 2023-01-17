@@ -35,6 +35,7 @@ import model_train_construct as model_train
 import copy_from_past as past
 import scipy.io as scio
 import os
+from torchvision.datasets import MNIST
 
 def greedy_show(model, src, src_mask, trg,size_cont,src_save):
     """
