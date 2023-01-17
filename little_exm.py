@@ -79,7 +79,7 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         b[trg[ijk,:] - 1] = 1
         mainlogger.debug("updated b = %s", b)
         # Reshape b to be size_cont x size_cont
-        mainlogger.debug(size_cont,size_cont)
+        b = b.reshape(size_cont,size_cont)
         mainlogger.debug("reshaped b = %s", b)
         # Set first and last elements to 0
         b[0,0] = 0
