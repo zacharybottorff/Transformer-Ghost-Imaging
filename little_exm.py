@@ -51,6 +51,7 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         for_show = greedy_decode(ijk,model, src, src_mask, trg, start_symbol=1)
         mainlogger.debug("for_show = %s", for_show)
         # Set result to be for_show but as a 1 x (d0*d1) Tensor
+        # NOTE: One run indicated this changes nothing
         result = for_show.reshape([1,for_show.shape[0]*for_show.shape[1]])
         mainlogger.debug("result = %s", result)
         # Copy result into CPU memory
@@ -61,9 +62,7 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         mainlogger.debug("initial g = %s", g)
         mainlogger.debug("result.squeeze() - 1 = %s", result.squeeze() - 1)
         # First consider result with dimensions of length 1 removed, making it 1D
-        # Set given element of g to be 1
-        # URGENT: Do we want to set to 1?
-        # TODO: examine dimensions
+        # Set elements of g given by indices listed in result (minus 1) to be 1
         g[result.squeeze() - 1] = 1
         mainlogger.debug("updated g = %s", g)
         # Reshape g to be size_cont x size_cont
@@ -73,9 +72,8 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         b = torch.zeros(size_cont*size_cont)
         mainlogger.debug("initial b = %s", b)
         mainlogger.debug("trg[ijk,:] - 1 = %s", trg[ijk,:] - 1)
-        # Set given element of b to be 1
-        # URGENT: Do we want to set to 1?
-        # TODO: examine dimensions
+        # Set elements of b  given by indices listed in trg[ijk,:] (minus 1) to be 1
+        # URGENT: last element of b will always be 1 because of zeroes in trg[ijk,:]
         b[trg[ijk,:] - 1] = 1
         mainlogger.debug("updated b = %s", b)
         # Reshape b to be size_cont x size_cont
@@ -101,22 +99,25 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
         # If loss < loss_raw, update src_save element ijk to be g
         if(loss<loss_raw):
             src_save[ijk] = g
+            mainlogger.debug("loss < loss_raw, updating src_save")
+            mainlogger.debug("src_save = %s", src_save)
     return src_save
 
 def greedy_decode(ijk,model, src, src_mask, trg, start_symbol):
     """
     Take model and decode it.
     """
+    # TODO: figure out how the model works and what ys does
     mainlogger.info("Calling greedy_decode()")
-    # Change Tensor src to be only the two rows given by ijk and ijk+1
+    # Change Tensor src to be only the set given by ijk, preserving dimensionality
     src = src[ijk:ijk+1, :]
     mainlogger.debug("src = %s", src)
-    # Create Tensor of indices of nonzero values of the two rows of trg given by ijk and ijk+1
+    # Create Tensor of indices of nonzero values of the image of trg given by ijk, preserving dimensionality
     # Set int max_length to be the length of the first dimension of this Tensor
-    # Effectively, max_length = number of nonzero elements in the selected rows of trg
+    # Effectively, max_length = number of nonzero elements in the selected image of trg
     max_length = trg[ijk:ijk+1,:].nonzero().shape[0]
     mainlogger.debug("max_length = %s", max_length)
-    # Set src_mask to only be its first two rows and columns
+    # Set src_mask to only be its first row of its first layer
     src_mask = src_mask[0:1, 0:1, :]
     mainlogger.debug("src_mask = %s", src_mask)
     # Set memory to be the encoded version of model using src and src_mask
@@ -134,55 +135,69 @@ def greedy_decode(ijk,model, src, src_mask, trg, start_symbol):
         # Set prob as the generator of model with dimensions given by elements of matrix out
         prob = model.generator(out[:, -1])
         mainlogger.debug("prob = %s", prob)
-        # Set throwaway variable and next_word (Tensors) as the maximum value element in dimension 1 of prob
+        # Set throwaway variable to be Tensor of maximum values in dimension 1 of prob
+        # Set next_word to be Tensor of indices of those values
         _, next_word = torch.max(prob, dim=1)
         # Make next_word into a scalar
         next_word = next_word.item()
         mainlogger.debug("next_word = %s", next_word)
-        # Concatenate (append) in dimension 1 ys and a 1x1 Tensor containing next_word (which is on CUDA GPU device)
+        # Concatenate (append) next_word to ys in row dimension (which is on CUDA GPU device)
         ys = torch.cat([ys, torch.ones(1, 1, dtype=torch.long).fill_(next_word).cuda()], dim=1)
         mainlogger.debug("ys = %s", ys)
     return ys
 
 def trg_dealwith(input_image, imsize):
     """
-    TODO: Determine effect of this function
+    Determine trg based on nonzero elements of input_image.
     """
     mainlogger.info("Calling trg_dealwith()")
-    # Set arrange_likeu to 1D Tensor containing integer values [1, imsize[0]^2 + 1]
+    # Set arrange_likeu to 1D Tensor containing integer values [1, ..., imsize[0]^2 + 1]
     arrange_likeu = torch.arange(1, imsize[0] * imsize[0] + 1)
+    mainlogger.debug("arrange_likeu.shape = %s", arrange_likeu.shape)
     mainlogger.debug("arrange_likeu = %s", arrange_likeu)
     # Reshape input_image so that second dimension (dimension 1) is imsize[0]^2 in length
     input_image = input_image.reshape(input_image.shape[0], imsize[0] * imsize[0])
+    mainlogger.debug("reshaped input_image.shape = %s", input_image.shape)
     mainlogger.debug("reshaped input_image = %s", input_image)
     # Set trg to be element-wise product of input_image and arrange_likeus
+    # Nonzero elements of trg are replaced with their index out of 1024
+    # URGENT: This does not behave correctly for grayscale
     trg = input_image * arrange_likeu
+    mainlogger.debug("trg.shape = %s", trg.shape)
     mainlogger.debug("trg = %s", trg)
     # Remove all dimensions that are length 1 from trg (make trg 1D?)
     trg = trg.squeeze()
+    mainlogger.debug("squeezed trg.shape = %s", trg.shape)
     mainlogger.debug("squeezed trg = %s", trg)
-    # Set find_max_dim to be the highest number of nonzero terms in any single row of trg
+    # Set find_max_dim to be the highest number of nonzero terms in any single image of trg
     find_max_dim = torch.count_nonzero(trg,dim=1).max()
+    mainlogger.debug("find_max_dim.shape = %s", find_max_dim.shape)
     mainlogger.debug("find_max_dim = %s", find_max_dim)
     # Initialize trg_batch as a trg.shape[0] x find_max_dim Tensor filled with 0s
     trg_batch = torch.zeros(trg.shape[0],find_max_dim)
+    mainlogger.debug("trg_batch.shape = %s", trg_batch.shape)
     mainlogger.debug("trg_batch = %s", trg_batch)
     # Initialize index_x as 0
     index_x = 0
-    # Loop number of times equal to length of dimension 0 of trg
+    # Loop number of times equal to length of dimension 0 of trg (number of images in trg)
     while (index_x != trg.shape[0]):
         mainlogger.debug("index_x = %s", index_x)
-        # Set trg_pice to row of trg given by index_x
+        # Set trg_pice to 1 image out of batch of trg given by index_x
         trg_pice = trg[index_x, :]
+        mainlogger.debug("trg_pice.shape = %s", trg_pice.shape)
         mainlogger.debug("trg_pice = %s", trg_pice)
         # Set trg_nonzero to be Tensor of indices of nonzero elements of trg_pice
         trg_nonzero = trg_pice.nonzero()
+        mainlogger.debug("trg_nonzero.shape = %s", trg_nonzero.shape)
         mainlogger.debug("trg_nonzero = %s", trg_nonzero)
-        # Remove dimensions of length 1 from places where dimension 0 element is nonzero?
+        # Remove dimensions of length 1 from places where element is nonzero
+        # In effect, remove elements that are zero from trg_pice
         trg_pice = trg_pice[trg_nonzero].squeeze()
+        mainlogger.debug("trg_pice.shape = %s", trg_pice.shape)
         mainlogger.debug("trg_pice = %s", trg_pice)
-        # Set row index_x of trg_batch to be trg_pice (up to length of trg_pice)
+        # Set image given by index_x of trg_batch to be trg_pice (up to length of trg_pice), leaving the rest
         trg_batch[index_x,0:trg_pice.shape[0]] = trg_pice
+        mainlogger.debug("trg_batch.shape = %s", trg_batch.shape)
         mainlogger.debug("trg_batch = %s", trg_batch)
         # Increment index_x
         index_x += 1
@@ -219,7 +234,7 @@ def run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_sav
     mainlogger.debug("src_tender = %s", src_tender)
     # Convert input_image from numpy array to torch Tensor
     input_image = torch.from_numpy(input_image)
-    #
+    # Set trg_tender to be a tensor of indices (i+1) that are nonzero in each image
     trg_tender = trg_dealwith(input_image,imsize)
     mainlogger.debug("trg_tender = %s", trg_tender)
     # Initialize a batch with src = src_tender, trg = trg_tender, and pad = 0
@@ -240,7 +255,7 @@ def src_dealwith(img_ori, pattern,V2):
     mainlogger.info("Calling src_dealwith()")
     # Remove dimensions of length 1 from pattern
     pattern = pattern.squeeze()
-    mainlogger.debug("squeeded pattern = %s", pattern)
+    mainlogger.debug("squeezed pattern = %s", pattern)
     # Reshape pattern to be 1 x (original dimension 0 length) x 32 x 32
     # NOTE: This may introduce expensive runtimes based on input size
     pattern = pattern.reshape(1, pattern.shape[0], 32, 32)
@@ -291,6 +306,7 @@ def src_dealwith(img_ori, pattern,V2):
         mainlogger.debug("I = %s", I)
     # Cast elements of I to int, rounding down
     # URGENT: This may be where rounding takes place
+    # URGENT: What is the 1D set of bucket signals? I? src? trg?
     I = I.int()
     mainlogger.debug("rounded I = %s", I)
     return I
