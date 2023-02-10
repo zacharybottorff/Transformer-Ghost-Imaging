@@ -355,12 +355,19 @@ size_cont = 32
 V1 = size_cont * size_cont + 1
 V2 = size_cont * size_cont + 1
 
+# Attempt to make grayscale
+# V1 = 256
+# V2 = 256
+
 # TODO: Learn what these do
 DataLoaderName = MNIST
 batch = 10 #200
 imsize =[size_cont]
 criterion = nn.CrossEntropyLoss()
 # Construct blank model with structure
+# URGENT: V1 is src_vocab, identifies size of dictionary of embeddings related to src
+# URGENT: V2 is trg_vocab, identifies size of dictionary of embeddings related to trg
+# URGENT: d_model is dimensionality of model and also size of embedding vector
 model = transformer.make_model(V1, V2,N=6, d_model=512, d_ff=2048, h=8, dropout=0.1)
 # Read model file if there is existing one
 # model.load_state_dict(torch.load(readModelFile))#change
