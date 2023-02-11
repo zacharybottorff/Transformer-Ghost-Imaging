@@ -23,6 +23,7 @@ class Batch(object):
             self.trg = trg[:, :-1]
             self.trg_y = trg[:, 1:]
             self.trg_mask = self.make_std_mask(self.trg, pad)
+            # TODO: Find out why this was changed
             # self.ntokens = (self.trg_y != pad).sum().item()
             self.ntokens = (self.trg_y.shape[1])
             # self.ntokens = self.trg_y.shape[1]
