@@ -8,7 +8,7 @@ debug_level = logging.DEBUG
 mainlogger.setLevel(debug_level)
 
 # Create file handler
-logfile = "output.log"
+logfile = "output6.log"
 fh = logging.FileHandler(logfile, mode='w')
 fh.setLevel(debug_level)
 
