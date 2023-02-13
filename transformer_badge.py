@@ -4,11 +4,11 @@ import logging
 mainlogger = logging.getLogger("mainlogger")
 
 # Change to logging.WARNING to disable logging statements
-debug_level = logging.DEBUG
+debug_level = logging.WARNING
 mainlogger.setLevel(debug_level)
 
 # Create file handler
-logfile = "output6.log"
+logfile = "output7.log"
 fh = logging.FileHandler(logfile, mode='w')
 fh.setLevel(debug_level)
 
@@ -393,7 +393,6 @@ class Embeddings(nn.Module):
         # Set Embeddings.lut to be torch.nn.Embedding with number given by parameter vocab and dimensions given by parameter d_model
         self.lut = nn.Embedding(vocab, d_model)
         mainlogger.debug("Lookup table = %s", self.lut)
-        # vocab = 62 d_model = 512
         # Set Embeddings.d_model to be parameter d_model
         self.d_model = d_model
 
