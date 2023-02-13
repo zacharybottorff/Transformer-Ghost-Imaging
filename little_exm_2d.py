@@ -133,24 +133,33 @@ def trg_dealwith(input_image, imsize):
     transformer.mainlogger.debug("reshaped input_image.shape = %s", input_image.shape)
     transformer.mainlogger.debug("reshaped input_image = %s", input_image)
     # Make additional dimension of 1s for grayscale values >= 1
-    # First, make a tensor of zeroes with extra dimension of length 2
-    extra_dim_input_image = torch.zeros(input_image.shape, 2)
+    # First, make a tensor of zeroes with extra dimension
+    input_image = torch.unsqueeze(input_image, dim=-1)
+    transformer.mainlogger.debug("unsqueezed input_image.shape = %s", input_image.shape)
+    transformer.mainlogger.debug("unsqueezed input_image = %s", input_image)
+    # Then, expand the extra dimension to have length 2
+    input_image = input_image.expand(-1, -1, 2)
+    transformer.mainlogger.debug("expanded input_image.shape = %s", input_image.shape)
+    transformer.mainlogger.debug("expanded input_image = %s", input_image)
     for i1 in range(input_image.shape[0]):
         for i2 in range(input_image.shape[1]):
-        # At index 0 in extra dimension, extra_dim should match input_image
-        extra_dim_input_image[i1,i2,0] = input_image[i1,i2]
-            if input_image[i1,i2] >= 1:
+            transformer.mainlogger.debug("i1, i2 = %s, %s", i1, i2)
+            if input_image[i1,i2,0] >= 1:
                 # At index 1 in extra dimension, extra_dim should be 1 or 0
-                extra_dim_input_image[i1,i2,1] = 1
+                input_image[i1,i2,1] = 1
+            else:
+                input_image[i1,i2,1] = 0
+            transformer.mainlogger.debug("input_image[i1,i2,1] = %s", input_image[i1,i2,1])
     # Set trg to be element-wise product of input_image and arrange_likeus
     # Nonzero elements of trg are replaced with their index out of 1024
     # URGENT: This does not behave correctly for grayscale
     # trg = input_image * arrange_likeu
-    trg = extra_dim_input_image
-    trg[:,:,1] = extra_dim_input_image[:,:,1] * arrange_likeu
+    trg = input_image
+    # NOTE: at this point, dimensions are batch, pixel index, grayscale/binary
+    trg[:,:,1] = input_image[:,:,1] * arrange_likeu
     transformer.mainlogger.debug("trg.shape = %s", trg.shape)
     transformer.mainlogger.debug("trg = %s", trg)
-    # Remove all dimensions that are length 1 from trg (make trg 1D?)
+    # Remove all dimensions that are length 1 from trg
     trg = trg.squeeze()
     transformer.mainlogger.debug("squeezed trg.shape = %s", trg.shape)
     transformer.mainlogger.debug("squeezed trg = %s", trg)
@@ -168,30 +177,31 @@ def trg_dealwith(input_image, imsize):
     while (index_x != trg.shape[0]):
         transformer.mainlogger.debug("index_x = %s", index_x)
         # Set trg_pice to 1 image out of batch of trg given by index_x
-        trg_pice = trg[index_x, :]
+        trg_pice = trg[index_x, :, :]
         transformer.mainlogger.debug("trg_pice.shape = %s", trg_pice.shape)
         transformer.mainlogger.debug("trg_pice = %s", trg_pice)
-        # Set trg_nonzero to be Tensor of indices of nonzero elements of trg_pice
+        # Set trg_nonzero to be Tensor of indices of nonzero elements of trg_pice and corresponding grayscale values (?)
         trg_nonzero = trg_pice.nonzero()
         transformer.mainlogger.debug("trg_nonzero.shape = %s", trg_nonzero.shape)
         transformer.mainlogger.debug("trg_nonzero = %s", trg_nonzero)
         # Remove dimensions of length 1 from places where element is nonzero
         # In effect, remove elements that are zero from trg_pice
-        trg_pice = trg_pice[trg_nonzero].squeeze()
+        trg_pice = trg_pice[trg_nonzero[:,0],:].squeeze()
         transformer.mainlogger.debug("trg_pice.shape = %s", trg_pice.shape)
         transformer.mainlogger.debug("trg_pice = %s", trg_pice)
         # Set image given by index_x of trg_batch to be trg_pice (up to length of trg_pice), leaving the rest
-        trg_batch[index_x,0:trg_pice.shape[0]] = trg_pice
+        trg_batch[index_x,0:trg_pice.shape[0],0:trg_pice.shape[1]] = trg_pice
         transformer.mainlogger.debug("trg_batch.shape = %s", trg_batch.shape)
         transformer.mainlogger.debug("trg_batch = %s", trg_batch)
         # Increment index_x
         index_x += 1
 
     # Initialize trg_pice_zero as Tensor of 0s with same dimensions as trg_batch (dimension 1 length increased by 1)
-    trg_pice_zero = torch.zeros(trg_batch.shape[0],trg_batch.shape[1]+1)
+    trg_pice_zero = torch.zeros(trg_batch.shape[0],trg_batch.shape[1]+1,trg_batch.shape[2]+1)
+    transformer.mainlogger.debug("trg_pice_zero.shape = %s", trg_pice_zero.shape)
     transformer.mainlogger.debug("trg_pice_zero = %s", trg_pice_zero)
     # Set all but first column of trg_pice_zero to be equivalent to trg_batch
-    trg_pice_zero[:,1:] = trg_batch
+    trg_pice_zero[:,1:,:] = trg_batch
     transformer.mainlogger.debug("updated trg_pice_zero = %s", trg_pice_zero)
     # Copy trg_pice_zero to default CUDA device (GPU)
     trg_pice_zero = trg_pice_zero.cuda()
@@ -238,41 +248,53 @@ def src_dealwith(img_ori, pattern,V2):
     Combine image with speckle pattern.
     """
     transformer.mainlogger.info("Calling src_dealwith()")
+    transformer.mainlogger.debug("initial pattern.shape = %s", pattern.shape)
     # Remove dimensions of length 1 from pattern
     pattern = pattern.squeeze()
+    transformer.mainlogger.debug("squeezed pattern.shape = %s", pattern.shape)
     transformer.mainlogger.debug("squeezed pattern = %s", pattern)
     # Reshape pattern to be 1 x (original dimension 0 length) x 32 x 32
     # NOTE: This may introduce expensive runtimes based on input size
     pattern = pattern.reshape(1, pattern.shape[0], 32, 32)
+    transformer.mainlogger.debug("reshaped pattern.shape = %s", pattern.shape)
     transformer.mainlogger.debug("reshaped pattern = %s", pattern)
     # Reshape img_ori to be 10 x 1 x 32 x 32
+    transformer.mainlogger.debug("original img_ori.shape = %s", img_ori.shape)
     img_ori = img_ori.reshape(10, 1, 32, 32)
+    transformer.mainlogger.debug("reshaped img_ori.shape = %s", img_ori.shape)
     transformer.mainlogger.debug("reshaped img_ori = %s", img_ori)
     # Create image from element-wise multiplication of pattern and img_ori (original image)
-    # URGENT: divide by 255?
     image = pattern * img_ori
     transformer.mainlogger.debug("image = %s", image)
     # Convert image from numpy array to torch Tensor
     image = torch.from_numpy(image)
+    # Expand image, giving it an extra dimension of length 2
+    image = image.expand(-1, -1, -1, -1, 2)
     # Set I to be 32 x 32 Tensor, result of dimensions 2 and 3 summed over in image
     I = torch.sum(image, (2, 3))
+    transformer.mainlogger.debug("initial I.shape = %s", I.shape)
     transformer.mainlogger.debug("initial I = %s", I)
     # Copy I to default CUDA device (GPU)
     I = I.cuda()
     # Set I_min and I_index to have the minimum value in dimension 1 of I
     I_min, I_index = torch.min(I,1)
+    transformer.mainlogger.debug("I_min.shape = %s", I_min.shape)
     transformer.mainlogger.debug("I_min = %s", I_min)
     # Reshape I_min to have original length in dimension 0 and length 1 in dimension 1
     I_min = I_min.reshape(I.shape[0],1)
+    transformer.mainlogger.debug("reshaped I_min.shape = %s", I_min.shape)
     transformer.mainlogger.debug("reshaped I_min = %s", I_min)
     # Set I to be difference between I and I_min
     I = I - I_min
+    transformer.mainlogger.debug("I.shape = %s", I.shape)
     transformer.mainlogger.debug("I = %s", I)
     # Set I_max and I_index to be maximum value in dimension 1 of I
     I_max, I_index = torch.max(I,1)
+    transformer.mainlogger.debug("I_max.shape = %s", I_max.shape)
     transformer.mainlogger.debug("I_max = %s", I_max)
     # Reshape I_max to have original length in dimension 0 and length 1 in dimension 1
     I_max = I_max.reshape(I.shape[0],1)
+    transformer.mainlogger.debug("reshaped I_max.shape = %s", I_max.shape)
     transformer.mainlogger.debug("reshaped I_max = %s", I_max)
     # Manually set which operation is done, whether noise is introduced
     if(0):
