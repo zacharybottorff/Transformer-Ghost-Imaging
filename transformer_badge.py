@@ -359,7 +359,10 @@ class PositionwiseFeedForward(nn.Module):
     """
     # Default constructor for PositionwiseFeedForward
     def __init__(self, d_model, d_ff, dropout=0.1):
-        mainlogger.debug("Creating PositionwiseFeedForward object with d_model = %s", d_model, ", d_ff = %s", d_ff, ", dropout = %s", dropout)
+        mainlogger.debug("Creating PositionwiseFeedForward object with:")
+        mainlogger.debug("d_model = %s", d_model)
+        mainlogger.debug("d_ff = %s", d_ff)
+        mainlogger.debug("dropout = %s", dropout)
         # Create object of superclass torch.nn.Module
         super(PositionwiseFeedForward, self).__init__()
         # Set PositionwiseFeedForward.w_1 to be the linear transformed tensor with dimensions given by parameters d_model and d_diff
@@ -386,7 +389,8 @@ class Embeddings(nn.Module):
     """
     # Default constructor for Embeddings
     def __init__(self, d_model, vocab):
-        mainlogger.debug("Creating Embeddings object of vocab = %s", vocab, ", d_model = %s", d_model)
+        mainlogger.debug("Creating Embeddings object of vocab = %s", vocab)
+        mainlogger.debug("d_model = %s", d_model)
         # Create object of superclass torch.nn.Module
         super(Embeddings, self).__init__()
         # lut => lookup table
@@ -409,7 +413,9 @@ class PositionalEncoding(nn.Module):
     """
     # Default constructor for Positional Encoding
     def __init__(self, d_model, dropout, max_len=5000):
-        mainlogger.debug("Creating PositionalEncoding object of d_model = %s", d_model, ", dropout = %s", dropout, ", max_len = %s", max_len)
+        mainlogger.debug("Creating PositionalEncoding object of d_model = %s", d_model)
+        mainlogger.debug("dropout = %s", dropout)
+        mainlogger.debug("max_len = %s", max_len)
         # Create object of superclass torch.nn.Module
         super(PositionalEncoding, self).__init__()
         # Set PositionalEncoding.dropout based on parameter dropout

@@ -269,6 +269,7 @@ def src_dealwith(img_ori, pattern,V2):
     # Convert image from numpy array to torch Tensor
     image = torch.from_numpy(image)
     # Expand image, giving it an extra dimension of length 2
+    image = torch.unsqueeze(image, dim=-1)
     image = image.expand(-1, -1, -1, -1, 2)
     # Set I to be 32 x 32 Tensor, result of dimensions 2 and 3 summed over in image
     I = torch.sum(image, (2, 3))
