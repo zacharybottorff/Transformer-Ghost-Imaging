@@ -282,7 +282,7 @@ def src_dealwith(img_ori, pattern,V2):
     transformer.mainlogger.debug("I_min.shape = %s", I_min.shape)
     transformer.mainlogger.debug("I_min = %s", I_min)
     # Reshape I_min to have original length in dimension 0 and length 1 in dimension 1
-    I_min = I_min.reshape(I.shape[0],1)
+    I_min = I_min.reshape(I.shape[0],2)
     transformer.mainlogger.debug("reshaped I_min.shape = %s", I_min.shape)
     transformer.mainlogger.debug("reshaped I_min = %s", I_min)
     # Set I to be difference between I and I_min
@@ -294,7 +294,7 @@ def src_dealwith(img_ori, pattern,V2):
     transformer.mainlogger.debug("I_max.shape = %s", I_max.shape)
     transformer.mainlogger.debug("I_max = %s", I_max)
     # Reshape I_max to have original length in dimension 0 and length 1 in dimension 1
-    I_max = I_max.reshape(I.shape[0],1)
+    I_max = I_max.reshape(I.shape[0],2)
     transformer.mainlogger.debug("reshaped I_max.shape = %s", I_max.shape)
     transformer.mainlogger.debug("reshaped I_max = %s", I_max)
     # Manually set which operation is done, whether noise is introduced
