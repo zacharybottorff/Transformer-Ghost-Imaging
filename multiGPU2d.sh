@@ -16,6 +16,7 @@
 
 #First Executable Line
 source tdenv/bin/activate
+module restore dl
 module load GCC/10.2.0  CUDA/11.1.1  OpenMPI/4.0.5
 module load torchvision/0.10.0-PyTorch-1.9.0
 module load matplotlib/3.3.3

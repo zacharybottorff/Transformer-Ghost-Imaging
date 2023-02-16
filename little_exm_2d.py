@@ -275,6 +275,8 @@ def src_dealwith(img_ori, pattern,V2):
     I = torch.sum(image, (2, 3))
     transformer.mainlogger.debug("initial I.shape = %s", I.shape)
     transformer.mainlogger.debug("initial I = %s", I)
+    # Prepare I for operations by swapping dimensions 1 and 2
+    I = I.reshape(I.shape[0], I.shape[2], I.shape[1])
     # Copy I to default CUDA device (GPU)
     I = I.cuda()
     # Set I_min and I_index to have the minimum value in dimension 1 of I
@@ -312,6 +314,8 @@ def src_dealwith(img_ori, pattern,V2):
         # Update I
         I = I/(I_max+1)*V2
         transformer.mainlogger.debug("I = %s", I)
+    # Return I to desired dimensions
+    I = I.reshape(I.shape[0], I.shape[2], I.shape[1])
     # Cast elements of I to int, rounding down
     # URGENT: This may be where rounding takes place
     # URGENT: What is the 1D set of bucket signals? I? src? trg?
