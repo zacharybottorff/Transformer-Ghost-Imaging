@@ -268,33 +268,36 @@ def src_dealwith(img_ori, pattern,V2):
     transformer.mainlogger.debug("image = %s", image)
     # Convert image from numpy array to torch Tensor
     image = torch.from_numpy(image)
-    # Expand image, giving it an extra dimension of length 2
-    image = torch.unsqueeze(image, dim=-1)
-    image = image.expand(-1, -1, -1, -1, 2)
     # Set I to be 32 x 32 Tensor, result of dimensions 2 and 3 summed over in image
     I = torch.sum(image, (2, 3))
     transformer.mainlogger.debug("initial I.shape = %s", I.shape)
     transformer.mainlogger.debug("initial I = %s", I)
-    # Prepare I for operations by swapping dimensions 1 and 2
-    I = I.reshape(I.shape[0], I.shape[2], I.shape[1])
+    # # Prepare I for operations by swapping dimensions 1 and 2
+    # I = I.reshape(I.shape[0], I.shape[2], I.shape[1])
     # Copy I to default CUDA device (GPU)
     I = I.cuda()
-    # Set I_min and I_index to have the minimum value in dimension 1 of I
+    # Set I_min to have the minimum value in each unit of dimension 1 of I
+    # Set I_index to be indices of minimum values
     I_min, I_index = torch.min(I,1)
     transformer.mainlogger.debug("I_min.shape = %s", I_min.shape)
     transformer.mainlogger.debug("I_min = %s", I_min)
+    transformer.mainlogger.debug("I_index.shape = %s", I_index.shape)
+    transformer.mainlogger.debug("I_index = %s", I_index)
     # Reshape I_min to have original length in dimension 0 and length 1 in dimension 1
-    I_min = I_min.reshape(I.shape[0],2)
+    I_min = I_min.reshape(I.shape[0],1)
     transformer.mainlogger.debug("reshaped I_min.shape = %s", I_min.shape)
     transformer.mainlogger.debug("reshaped I_min = %s", I_min)
     # Set I to be difference between I and I_min
     I = I - I_min
     transformer.mainlogger.debug("I.shape = %s", I.shape)
     transformer.mainlogger.debug("I = %s", I)
-    # Set I_max and I_index to be maximum value in dimension 1 of I
+    # Set I_max to be maximum values in each unit of dimension 1 of I
+    # Set I_index to be indices of maximum values
     I_max, I_index = torch.max(I,1)
     transformer.mainlogger.debug("I_max.shape = %s", I_max.shape)
     transformer.mainlogger.debug("I_max = %s", I_max)
+    transformer.mainlogger.debug("I_index.shape = %s", I_index.shape)
+    transformer.mainlogger.debug("I_index = %s", I_index)
     # Reshape I_max to have original length in dimension 0 and length 1 in dimension 1
     I_max = I_max.reshape(I.shape[0],2)
     transformer.mainlogger.debug("reshaped I_max.shape = %s", I_max.shape)
@@ -314,13 +317,16 @@ def src_dealwith(img_ori, pattern,V2):
         # Update I
         I = I/(I_max+1)*V2
         transformer.mainlogger.debug("I = %s", I)
-    # Return I to desired dimensions
-    I = I.reshape(I.shape[0], I.shape[2], I.shape[1])
+    # # Return I to desired dimensions
+    # I = I.reshape(I.shape[0], I.shape[2], I.shape[1])
     # Cast elements of I to int, rounding down
     # URGENT: This may be where rounding takes place
     # URGENT: What is the 1D set of bucket signals? I? src? trg?
     I = I.int()
     transformer.mainlogger.debug("rounded I = %s", I)
+    # Expand image, giving it an extra dimension of length 2
+    I = torch.unsqueeze(I, dim=-1)
+    I = I.expand(-1, -1, 2)
     return I
 
 
