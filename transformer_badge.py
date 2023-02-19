@@ -4,11 +4,11 @@ import logging
 mainlogger = logging.getLogger("mainlogger")
 
 # Change to logging.WARNING to disable logging statements
-debug_level = logging.DEBUG
+debug_level = logging.WARNING
 mainlogger.setLevel(debug_level)
 
 # Create file handler
-logfile = "output10.log"
+logfile = "output20.log"
 fh = logging.FileHandler(logfile, mode='w')
 fh.setLevel(debug_level)
 
