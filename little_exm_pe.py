@@ -130,7 +130,9 @@ def trg_dealwith(input_image, imsize):
     input_image = input_image.reshape(input_image.shape[0], imsize[0]*imsize[0])
     transformer.mainlogger.debug("reshaped input_image.shape = %s", input_image.shape)
     transformer.mainlogger.debug("reshaped input_image = %s", input_image)
-    return input_image
+    # Copy to GPU
+    trg_tender = input_image.cuda()
+    return trg_tender
     # # Set arrange_likeu to 1D Tensor containing integer values [1, ..., imsize[0]^2 + 1]
     # arrange_likeu = torch.arange(1, imsize[0] * imsize[0] + 1)
     # transformer.mainlogger.debug("arrange_likeu.shape = %s", arrange_likeu.shape)
@@ -296,7 +298,7 @@ def src_dealwith(img_ori, pattern,V2):
 # !!!!!!!!!!!ray15 nuber 改900
 #!!!!!!!!!!!!!!!!检查是不是V2
 # readImageFile = "/scratch/user/taopeng/REAL_TRUE_white/A_WHR_MAKE_RESULT/image/Number_Image.npy"
-readImageFile = "./image/Smile_image.npy"
+readImageFile = "./image/Smile_image_grayscale.npy"
 
 # readPatternFile = "/scratch/user/taopeng/REAL_TRUE_white/data/pattern/Pink_SR2p.npy"
 # readPatternFile = "/scratch/user/taopeng/REAL_TRUE_white/data/pattern/Pink_SR3p.npy"
@@ -316,7 +318,7 @@ readPatternFile = "./pattern/pink_p5.npy"
 # readModelFile = "/scratch/user/taopeng/REAL_TRUE_white/data/SMILE_Ray_SR15p_0/Modelpara.pth"
 # readModelFile = "./models/test_Modelpara.pth"
 
-saveModelFile = './zmodel/grayscale_model_alpha'
+saveModelFile = './zmodel/grayscale_model_beta'
 
 # save_name = './result/Noise_Pink_SR2p_0.npy'
 # save_name = './result/Noise_Pink_SR3p_0.npy'
@@ -327,7 +329,7 @@ saveModelFile = './zmodel/grayscale_model_alpha'
 # save_name = './result/SMILE_PINK_SR3p_0.npy'
 # save_name = './result/SMILE_Pink_SR5p_10.npy'
 # save_name = './result/SMILE_Ray_SR5p_10.npy'
-save_name = './zresult/SMILE_Pink_p5_grayscale_1.npy'
+save_name = './zresult/SMILE_Pink_p5_grayscale_pe.npy'
 
 
 
@@ -364,7 +366,7 @@ src_save = np.ones([10,32,32])*900
 for epoch in range(1000):
     model.train()
     # model.eval()
-    print("Epoch: ", epoch + 1)
+    transformer.mainlogger.info("Epoch: %s", epoch + 1)
     start = time.time()
     src_save = run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_save)
     torch.save(model.state_dict(), saveModelFile)
