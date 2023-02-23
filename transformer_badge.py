@@ -4,11 +4,11 @@ import logging
 mainlogger = logging.getLogger("mainlogger")
 
 # Change to logging.WARNING to disable logging statements
-debug_level = logging.WARNING
+debug_level = logging.DEBUG
 mainlogger.setLevel(debug_level)
 
 # Create file handler
-logfile = "output20.log"
+logfile = "output22.log"
 fh = logging.FileHandler(logfile, mode='w')
 fh.setLevel(debug_level)
 
@@ -452,6 +452,10 @@ class PositionalEncoding(nn.Module):
         Apply the PE function to the input Tensor and apply dropout.
         """
         mainlogger.info("Calling PositionalEncoding.forward()")
+        # mainlogger.debug("self.pe.shape = %s", self.pe.shape)
+        # mainlogger.debug("self.pe = %s", self.pe)
+        # mainlogger.debug("x.shape = %s", x.shape)
+        mainlogger.debug("x = %s", x)
         x = x + self.pe[:, :x.size(1)]
         mainlogger.debug("x = %s", x)
         return self.dropout(x)

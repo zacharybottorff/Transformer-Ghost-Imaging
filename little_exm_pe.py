@@ -124,66 +124,73 @@ def trg_dealwith(input_image, imsize):
     Determine trg based on nonzero elements of input_image.
     """
     transformer.mainlogger.info("Calling trg_dealwith()")
-    # Set arrange_likeu to 1D Tensor containing integer values [1, ..., imsize[0]^2 + 1]
-    arrange_likeu = torch.arange(1, imsize[0] * imsize[0] + 1)
-    transformer.mainlogger.debug("arrange_likeu.shape = %s", arrange_likeu.shape)
-    transformer.mainlogger.debug("arrange_likeu = %s", arrange_likeu)
-    # Reshape input_image so that second dimension (dimension 1) is imsize[0]^2 in length
-    input_image = input_image.reshape(input_image.shape[0], imsize[0] * imsize[0])
+    transformer.mainlogger.debug("initial input_image.shape = %s", input_image.shape)
+    transformer.mainlogger.debug("initial input_image = %s", input_image)
+    # Reshape input_image to be (batch size) set of 1D Tensors
+    input_image = input_image.reshape(input_image.shape[0], imsize[0]*imsize[0])
     transformer.mainlogger.debug("reshaped input_image.shape = %s", input_image.shape)
     transformer.mainlogger.debug("reshaped input_image = %s", input_image)
-    # Set trg to be element-wise product of input_image and arrange_likeus
-    # Nonzero elements of trg are replaced with their index out of 1024
-    # URGENT: This does not behave correctly for grayscale
-    trg = input_image * arrange_likeu
-    transformer.mainlogger.debug("trg.shape = %s", trg.shape)
-    transformer.mainlogger.debug("trg = %s", trg)
-    # Remove all dimensions that are length 1 from trg (make trg 1D?)
-    trg = trg.squeeze()
-    transformer.mainlogger.debug("squeezed trg.shape = %s", trg.shape)
-    transformer.mainlogger.debug("squeezed trg = %s", trg)
-    # Set find_max_dim to be the highest number of nonzero terms in any single image of trg
-    find_max_dim = torch.count_nonzero(trg,dim=1).max()
-    transformer.mainlogger.debug("find_max_dim.shape = %s", find_max_dim.shape)
-    transformer.mainlogger.debug("find_max_dim = %s", find_max_dim)
-    # Initialize trg_batch as a trg.shape[0] x find_max_dim Tensor filled with 0s
-    trg_batch = torch.zeros(trg.shape[0],find_max_dim)
-    transformer.mainlogger.debug("trg_batch.shape = %s", trg_batch.shape)
-    transformer.mainlogger.debug("trg_batch = %s", trg_batch)
-    # Initialize index_x as 0
-    index_x = 0
-    # Loop number of times equal to length of dimension 0 of trg (number of images in trg)
-    while (index_x != trg.shape[0]):
-        transformer.mainlogger.debug("index_x = %s", index_x)
-        # Set trg_pice to 1 image out of batch of trg given by index_x
-        trg_pice = trg[index_x, :]
-        transformer.mainlogger.debug("trg_pice.shape = %s", trg_pice.shape)
-        transformer.mainlogger.debug("trg_pice = %s", trg_pice)
-        # Set trg_nonzero to be Tensor of indices of nonzero elements of trg_pice
-        trg_nonzero = trg_pice.nonzero()
-        transformer.mainlogger.debug("trg_nonzero.shape = %s", trg_nonzero.shape)
-        transformer.mainlogger.debug("trg_nonzero = %s", trg_nonzero)
-        # Remove dimensions of length 1 from places where element is nonzero
-        # In effect, remove elements that are zero from trg_pice
-        trg_pice = trg_pice[trg_nonzero].squeeze()
-        transformer.mainlogger.debug("trg_pice.shape = %s", trg_pice.shape)
-        transformer.mainlogger.debug("trg_pice = %s", trg_pice)
-        # Set image given by index_x of trg_batch to be trg_pice (up to length of trg_pice), leaving the rest
-        trg_batch[index_x,0:trg_pice.shape[0]] = trg_pice
-        transformer.mainlogger.debug("trg_batch.shape = %s", trg_batch.shape)
-        transformer.mainlogger.debug("trg_batch = %s", trg_batch)
-        # Increment index_x
-        index_x += 1
+    return input_image
+    # # Set arrange_likeu to 1D Tensor containing integer values [1, ..., imsize[0]^2 + 1]
+    # arrange_likeu = torch.arange(1, imsize[0] * imsize[0] + 1)
+    # transformer.mainlogger.debug("arrange_likeu.shape = %s", arrange_likeu.shape)
+    # transformer.mainlogger.debug("arrange_likeu = %s", arrange_likeu)
+    # # Reshape input_image so that second dimension (dimension 1) is imsize[0]^2 in length
+    # input_image = input_image.reshape(input_image.shape[0], imsize[0] * imsize[0])
+    # transformer.mainlogger.debug("reshaped input_image.shape = %s", input_image.shape)
+    # transformer.mainlogger.debug("reshaped input_image = %s", input_image)
+    # # Set trg to be element-wise product of input_image and arrange_likeus
+    # # Nonzero elements of trg are replaced with their index out of 1024
+    # # URGENT: This does not behave correctly for grayscale
+    # trg = input_image * arrange_likeu
+    # transformer.mainlogger.debug("trg.shape = %s", trg.shape)
+    # transformer.mainlogger.debug("trg = %s", trg)
+    # # Remove all dimensions that are length 1 from trg (make trg 1D?)
+    # trg = trg.squeeze()
+    # transformer.mainlogger.debug("squeezed trg.shape = %s", trg.shape)
+    # transformer.mainlogger.debug("squeezed trg = %s", trg)
+    # # Set find_max_dim to be the highest number of nonzero terms in any single image of trg
+    # find_max_dim = torch.count_nonzero(trg,dim=1).max()
+    # transformer.mainlogger.debug("find_max_dim.shape = %s", find_max_dim.shape)
+    # transformer.mainlogger.debug("find_max_dim = %s", find_max_dim)
+    # # Initialize trg_batch as a trg.shape[0] x find_max_dim Tensor filled with 0s
+    # trg_batch = torch.zeros(trg.shape[0],find_max_dim)
+    # transformer.mainlogger.debug("trg_batch.shape = %s", trg_batch.shape)
+    # transformer.mainlogger.debug("trg_batch = %s", trg_batch)
+    # # Initialize index_x as 0
+    # index_x = 0
+    # # Loop number of times equal to length of dimension 0 of trg (number of images in trg)
+    # while (index_x != trg.shape[0]):
+    #     transformer.mainlogger.debug("index_x = %s", index_x)
+    #     # Set trg_pice to 1 image out of batch of trg given by index_x
+    #     trg_pice = trg[index_x, :]
+    #     transformer.mainlogger.debug("trg_pice.shape = %s", trg_pice.shape)
+    #     transformer.mainlogger.debug("trg_pice = %s", trg_pice)
+    #     # Set trg_nonzero to be Tensor of indices of nonzero elements of trg_pice
+    #     trg_nonzero = trg_pice.nonzero()
+    #     transformer.mainlogger.debug("trg_nonzero.shape = %s", trg_nonzero.shape)
+    #     transformer.mainlogger.debug("trg_nonzero = %s", trg_nonzero)
+    #     # Remove dimensions of length 1 from places where element is nonzero
+    #     # In effect, remove elements that are zero from trg_pice
+    #     trg_pice = trg_pice[trg_nonzero].squeeze()
+    #     transformer.mainlogger.debug("trg_pice.shape = %s", trg_pice.shape)
+    #     transformer.mainlogger.debug("trg_pice = %s", trg_pice)
+    #     # Set image given by index_x of trg_batch to be trg_pice (up to length of trg_pice), leaving the rest
+    #     trg_batch[index_x,0:trg_pice.shape[0]] = trg_pice
+    #     transformer.mainlogger.debug("trg_batch.shape = %s", trg_batch.shape)
+    #     transformer.mainlogger.debug("trg_batch = %s", trg_batch)
+    #     # Increment index_x
+    #     index_x += 1
 
-    # Initialize trg_pice_zero as Tensor of 0s with same dimensions as trg_batch (dimension 1 length increased by 1)
-    trg_pice_zero = torch.zeros(trg_batch.shape[0],trg_batch.shape[1]+1)
-    transformer.mainlogger.debug("trg_pice_zero = %s", trg_pice_zero)
-    # Set all but first column of trg_pice_zero to be equivalent to trg_batch
-    trg_pice_zero[:,1:] = trg_batch
-    transformer.mainlogger.debug("updated trg_pice_zero = %s", trg_pice_zero)
-    # Copy trg_pice_zero to default CUDA device (GPU)
-    trg_pice_zero = trg_pice_zero.cuda()
-    return trg_pice_zero
+    # # Initialize trg_pice_zero as Tensor of 0s with same dimensions as trg_batch (dimension 1 length increased by 1)
+    # trg_pice_zero = torch.zeros(trg_batch.shape[0],trg_batch.shape[1]+1)
+    # transformer.mainlogger.debug("trg_pice_zero = %s", trg_pice_zero)
+    # # Set all but first column of trg_pice_zero to be equivalent to trg_batch
+    # trg_pice_zero[:,1:] = trg_batch
+    # transformer.mainlogger.debug("updated trg_pice_zero = %s", trg_pice_zero)
+    # # Copy trg_pice_zero to default CUDA device (GPU)
+    # trg_pice_zero = trg_pice_zero.cuda()
+    # return trg_pice_zero
 
 
 def run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_save):

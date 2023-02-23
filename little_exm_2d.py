@@ -204,7 +204,7 @@ def trg_dealwith(input_image, imsize):
         index_x += 1
 
     # Initialize trg_pice_zero as Tensor of 0s with same dimensions as trg_batch (dimension 1 length increased by 1)
-    trg_pice_zero = torch.zeros(trg_batch.shape[0],trg_batch.shape[1]+1,trg_batch.shape[2]+1)
+    trg_pice_zero = torch.zeros(trg_batch.shape[0],trg_batch.shape[1]+1,trg_batch.shape[2])
     transformer.mainlogger.debug("trg_pice_zero.shape = %s", trg_pice_zero.shape)
     transformer.mainlogger.debug("trg_pice_zero = %s", trg_pice_zero)
     # Set all but first column of trg_pice_zero to be equivalent to trg_batch
