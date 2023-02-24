@@ -4,7 +4,7 @@ import logging
 mainlogger = logging.getLogger("mainlogger")
 
 # Change to logging.WARNING to disable logging statements
-debug_level = logging.WARNING
+debug_level = logging.DEBUG
 mainlogger.setLevel(debug_level)
 
 # Create file handler
@@ -267,30 +267,30 @@ def attention(query, key, value, mask=None, dropout=None):
     mainlogger.info("Calling attention()")
     # Set d_k to be size of last dimension of query
     d_k = query.size(-1)
-    mainlogger.debug("d_k = %s", d_k)
+    # mainlogger.debug("d_k = %s", d_k)
     # Create tensor of scores ...
     # consisting of matrix product of parameter query and ...
     # the transpose around the last two dimensions of key ...
     # divided by the square root of d_k
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
-    mainlogger.debug("scores = %s", scores)
+    # mainlogger.debug("scores = %s", scores)
     # If there is mask in function call
     if mask is not None:
         # Apply the mask, filling in 0 wherever mask is 1
         # This is performed out-of-place, where masked_fill_() would perform in-place
         scores = scores.masked_fill(mask == 0, -1e9)
-        mainlogger.debug("scores = %s", scores)
+        # mainlogger.debug("scores = %s", scores)
     # Create a tensor applying softmax to the last dimension of scores tensor
     p_attn = F.softmax(scores, dim=-1)
-    mainlogger.debug("p_attn = %s", p_attn)
+    # mainlogger.debug("p_attn = %s", p_attn)
     # If there is dropout value in function call
     if dropout is not None:
         # Apply dropout to p_attn
         p_attn = dropout(p_attn)
-        mainlogger.debug("p_attn = %s", p_attn)
+        # mainlogger.debug("p_attn = %s", p_attn)
     # Return tuple containing the matrix product of p_attn and parameter value, p_attn
     attn_prod = torch.matmul(p_attn, value), p_attn
-    mainlogger.debug("attn_prod = %s", attn_prod)
+    # mainlogger.debug("attn_prod = %s", attn_prod)
     return attn_prod
 
 class MultiHeadedAttention(nn.Module):
@@ -332,25 +332,25 @@ class MultiHeadedAttention(nn.Module):
             mask = mask.unsqueeze(1)
         # Set nbatches to be the size of the first ??? of parameter query
         nbatches = query.size(0)
-        mainlogger.debug("nbatches = %s", nbatches)
+        # mainlogger.debug("nbatches = %s", nbatches)
 
         # 1) Do all the linear projections in batch from d_model => h x d_k
         query, key, value = [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
                              for l, x in zip(self.linears, (query, key, value))]
-        mainlogger.debug("query = %s", query)
-        mainlogger.debug("key = %s", key)
-        mainlogger.debug("value = %s", value)
+        # mainlogger.debug("query = %s", query)
+        # mainlogger.debug("key = %s", key)
+        # mainlogger.debug("value = %s", value)
 
         # 2) Apply attention on all the projected vectors in batch.
         x, self.attn = attention(query, key, value, mask=mask, dropout=self.dropout)
-        mainlogger.debug("x = %s", x)
-        mainlogger.debug("self.attn = %s", self.attn)
+        # mainlogger.debug("x = %s", x)
+        # mainlogger.debug("self.attn = %s", self.attn)
 
         # 3) "Concat" using a view and apply a final linear.
         x = x.transpose(1, 2).contiguous().view(nbatches, -1, self.h * self.d_k)
-        mainlogger.debug("concatenated x = %s", x)
+        # mainlogger.debug("concatenated x = %s", x)
         x_lin = self.linears[-1](x)
-        mainlogger.debug("x_lin = %s", x_lin)
+        # mainlogger.debug("x_lin = %s", x_lin)
         return x_lin
 
 class PositionwiseFeedForward(nn.Module):
@@ -359,20 +359,20 @@ class PositionwiseFeedForward(nn.Module):
     """
     # Default constructor for PositionwiseFeedForward
     def __init__(self, d_model, d_ff, dropout=0.1):
-        mainlogger.debug("Creating PositionwiseFeedForward object with:")
-        mainlogger.debug("d_model = %s", d_model)
-        mainlogger.debug("d_ff = %s", d_ff)
-        mainlogger.debug("dropout = %s", dropout)
+        # mainlogger.debug("Creating PositionwiseFeedForward object with:")
+        # mainlogger.debug("d_model = %s", d_model)
+        # mainlogger.debug("d_ff = %s", d_ff)
+        # mainlogger.debug("dropout = %s", dropout)
         # Create object of superclass torch.nn.Module
         super(PositionwiseFeedForward, self).__init__()
         # Set PositionwiseFeedForward.w_1 to be the linear transformed tensor with dimensions given by parameters d_model and d_diff
         # TODO: clarify how Linear() works
         self.w_1 = nn.Linear(d_model, d_ff)
-        mainlogger.debug("self.w_1 = %s", self.w_1)
+        # mainlogger.debug("self.w_1 = %s", self.w_1)
         # Set PositionwiseFeedForward.w_2 to be the linear transformed tensor with dimensions given by paramteters d_ff and d_model
         # TODO: clarify how Linear() works
         self.w_2 = nn.Linear(d_ff, d_model)
-        mainlogger.debug("self.w_2 = %s", self.w_2)
+        # mainlogger.debug("self.w_2 = %s", self.w_2)
         # Set PositionwiseFeedForward.dropout to be based on parameter dropout (default 0.1)
         self.dropout = nn.Dropout(dropout)
 
@@ -389,14 +389,14 @@ class Embeddings(nn.Module):
     """
     # Default constructor for Embeddings
     def __init__(self, d_model, vocab):
-        mainlogger.debug("Creating Embeddings object of vocab = %s", vocab)
-        mainlogger.debug("d_model = %s", d_model)
+        # mainlogger.debug("Creating Embeddings object of vocab = %s", vocab)
+        # mainlogger.debug("d_model = %s", d_model)
         # Create object of superclass torch.nn.Module
         super(Embeddings, self).__init__()
         # lut => lookup table
         # Set Embeddings.lut to be torch.nn.Embedding with number given by parameter vocab and dimensions given by parameter d_model
         self.lut = nn.Embedding(vocab, d_model)
-        mainlogger.debug("Lookup table = %s", self.lut)
+        # mainlogger.debug("Lookup table = %s", self.lut)
         # Set Embeddings.d_model to be parameter d_model
         self.d_model = d_model
 
@@ -413,9 +413,10 @@ class PositionalEncoding(nn.Module):
     """
     # Default constructor for Positional Encoding
     def __init__(self, d_model, dropout, max_len=5000):
-        mainlogger.debug("Creating PositionalEncoding object of d_model = %s", d_model)
-        mainlogger.debug("dropout = %s", dropout)
-        mainlogger.debug("max_len = %s", max_len)
+        mainlogger.info("Creating PositionalEncoding object.")
+        # mainlogger.debug("d_model = %s", d_model)
+        # mainlogger.debug("dropout = %s", dropout)
+        # mainlogger.debug("max_len = %s", max_len)
         # Create object of superclass torch.nn.Module
         super(PositionalEncoding, self).__init__()
         # Set PositionalEncoding.dropout based on parameter dropout
@@ -425,25 +426,25 @@ class PositionalEncoding(nn.Module):
         
         # Set Tensor pe to be a tensor of zeroes with sizes max_len x d_model
         pe = torch.zeros(max_len, d_model)
-        mainlogger.debug("pe = %s", pe)
+        # mainlogger.debug("pe = %s", pe)
         # Set Tensor position to be 2D Tensor containing single integer values [0, max_len)
         # Second dimension is only length 1
         # Essentially, this Tensor has been set to be a column vector instead of a row vector
         position = torch.arange(0, max_len).unsqueeze(1)
-        mainlogger.debug("position = %s", position)
+        # mainlogger.debug("position = %s", position)
         # In math notation, div_term = exp(A * -log(10000.0)/d_model)
             # Where A is 1D Tensor containing multiples of 2 in range [0, d_model)
         div_term = torch.exp(torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model))
-        mainlogger.debug("div_term = %s", div_term)
+        # mainlogger.debug("div_term = %s", div_term)
         # In second dimension, set even-index elements of Tensor pe to be analogous elements of sin(position * div_term)
         pe[:, 0::2] = torch.sin(position * div_term)
-        mainlogger.debug("pe = %s", pe)
+        # mainlogger.debug("pe = %s", pe)
         # In second dimension, set odd-index elements of Tensor pe to be analogous elements of cos(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
-        mainlogger.debug("pe = %s", pe)
+        # mainlogger.debug("pe = %s", pe)
         # Compress pe to 1D Tensor
         pe = pe.unsqueeze(0)
-        mainlogger.debug("pe = %s", pe)
+        # mainlogger.debug("pe = %s", pe)
         # Save pe as a buffer (not a parameter of the model, but important to track)
         self.register_buffer('pe', pe)
 
@@ -455,9 +456,9 @@ class PositionalEncoding(nn.Module):
         # mainlogger.debug("self.pe.shape = %s", self.pe.shape)
         # mainlogger.debug("self.pe = %s", self.pe)
         # mainlogger.debug("x.shape = %s", x.shape)
-        mainlogger.debug("x = %s", x)
+        # mainlogger.debug("x = %s", x)
         x = x + self.pe[:, :x.size(1)]
-        mainlogger.debug("x = %s", x)
+        # mainlogger.debug("x = %s", x)
         return self.dropout(x)
 
 def make_model(src_vocab, tgt_vocab, N=12, d_model=1024, d_ff=2048, h=8, dropout=0.1):

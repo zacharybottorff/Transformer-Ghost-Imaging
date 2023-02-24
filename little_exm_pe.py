@@ -100,7 +100,7 @@ def greedy_decode(ijk,model, src, src_mask, trg, start_symbol):
     ys = torch.ones(1, 1, dtype=torch.long).fill_(start_symbol).cuda()
     transformer.mainlogger.debug("ys = %s", ys)
     # Repeat max_length - 1 times
-    for i in range(max_length - 1):
+    for i in range(src.shape[1] - 1):
         transformer.mainlogger.debug("i = %s", i)
         # Set out as decoded version of model
         out = model.decode(memory, src_mask, model_train.Variable(ys), model_train.Variable(transformer.subsequent_mask(ys.size(1)).type_as(src.data)))
