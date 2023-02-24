@@ -10,7 +10,7 @@ import scipy.io as scio
 import os
 from torchvision.datasets import MNIST
 
-def greedy_show(model, src, src_mask, trg,size_cont,src_save):
+def greedy_show(model, src, src_mask, trg,size_cont,src_save,batch_size):
     """
     Update src_save based on repeated greedy_decode().
     """
@@ -18,7 +18,7 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save):
     # copy trg into CPU memory
     trg = trg.cpu()
     # repeat 10 times
-    for ijk in range(10):
+    for ijk in range(batch_size):
         transformer.mainlogger.debug("ijk = %s", ijk)
         # Set for_show to be the decoded version of model with start_symbol=1
         for_show = greedy_decode(ijk,model, src, src_mask, trg, start_symbol=1)
@@ -85,11 +85,11 @@ def greedy_decode(ijk,model, src, src_mask, trg, start_symbol):
     # Change Tensor src to be only the set given by ijk, preserving dimensionality
     src = src[ijk:ijk+1, :]
     transformer.mainlogger.debug("src = %s", src)
-    # Create Tensor of indices of nonzero values of the image of trg given by ijk, preserving dimensionality
-    # Set int max_length to be the length of the first dimension of this Tensor
-    # Effectively, max_length = number of nonzero elements in the selected image of trg
-    max_length = trg[ijk:ijk+1,:].nonzero().shape[0]
-    transformer.mainlogger.debug("max_length = %s", max_length)
+    # # Create Tensor of indices of nonzero values of the image of trg given by ijk, preserving dimensionality
+    # # Set int max_length to be the length of the first dimension of this Tensor
+    # # Effectively, max_length = number of nonzero elements in the selected image of trg
+    # max_length = trg[ijk:ijk+1,:].nonzero().shape[0]
+    # transformer.mainlogger.debug("max_length = %s", max_length)
     # Set src_mask to only be its first row of its first layer
     src_mask = src_mask[0:1, 0:1, :]
     transformer.mainlogger.debug("src_mask = %s", src_mask)
@@ -195,7 +195,7 @@ def trg_dealwith(input_image, imsize):
     # return trg_pice_zero
 
 
-def run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_save):
+def run_epoch(model,size_cont,pattern,readImageFile,save_name,V1,src_save,batch_size):
     """
     Standard Training and Logging Function
     """
@@ -209,10 +209,11 @@ def run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_sav
     # Output string "input_image" and the shape stored in input_image
     transformer.mainlogger.info("input_image shape = %s",input_image.shape)
     # Load readPatternFile and save as pattern
-    pattern = np.load(readPatternFile)
-    transformer.mainlogger.debug("pattern = %s", pattern)
+    # NOTE: this is moved outside "run_epoch()"
+    # pattern = np.load(readPatternFile)
+    # transformer.mainlogger.debug("pattern = %s", pattern)
     # Set src_tender to be combination of input_image and pattern
-    src_tender = src_dealwith(input_image, pattern,V2)
+    src_tender = src_dealwith(input_image, pattern,V1)
     transformer.mainlogger.debug("src_tender = %s", src_tender)
     # Convert input_image from numpy array to torch Tensor
     input_image = torch.from_numpy(input_image)
@@ -223,58 +224,68 @@ def run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_sav
     batch = model_train.Batch(src_tender, trg_tender, 0)
     transformer.mainlogger.debug("batch = %s", batch)
     # Update src_save through repeated greedy_decode()
-    src_save = greedy_show(model, batch.src, batch.src_mask, batch.trg, size_cont,src_save)
+    src_save = greedy_show(model, batch.src, batch.src_mask, batch.trg, size_cont,src_save, batch_size)
     transformer.mainlogger.debug("src_save = %s", src_save)
     # Save src_save to binary file in .npy format
     np.save(save_name,src_save)#change
     return src_save
 
 
-def src_dealwith(img_ori, pattern,V2):
+def src_dealwith(img_ori, pattern,V1):
     """
     Combine image with speckle pattern.
     """
     transformer.mainlogger.info("Calling src_dealwith()")
     # Remove dimensions of length 1 from pattern
     pattern = pattern.squeeze()
+    transformer.mainlogger.debug("squeezed pattern.shape = %s", pattern.shape)
     transformer.mainlogger.debug("squeezed pattern = %s", pattern)
     # Reshape pattern to be 1 x (original dimension 0 length) x 32 x 32
     # NOTE: This may introduce expensive runtimes based on input size
     pattern = pattern.reshape(1, pattern.shape[0], 32, 32)
+    transformer.mainlogger.debug("reshaped pattern.shape = %s", pattern.shape)
     transformer.mainlogger.debug("reshaped pattern = %s", pattern)
     # Reshape img_ori to be 10 x 1 x 32 x 32
     img_ori = img_ori.reshape(10, 1, 32, 32)
+    transformer.mainlogger.debug("reshaped img_ori.shape = %s", img_ori)
     transformer.mainlogger.debug("reshaped img_ori = %s", img_ori)
     # Create image from element-wise multiplication of pattern and img_ori (original image)
     # URGENT: divide by 255?
     image = pattern * img_ori
+    transformer.mainlogger.debug("image.shape = %s", image.shape)
     transformer.mainlogger.debug("image = %s", image)
     # Convert image from numpy array to torch Tensor
     image = torch.from_numpy(image)
-    # Set I to be 32 x 32 Tensor, result of dimensions 2 and 3 summed over in image
+    # Set I to be result of dimensions 2 and 3 summed over in image
     I = torch.sum(image, (2, 3))
+    transformer.mainlogger.debug("initial I.shape = %s", I.shape)
     transformer.mainlogger.debug("initial I = %s", I)
     # Copy I to default CUDA device (GPU)
     I = I.cuda()
     # Set I_min and I_index to have the minimum value in dimension 1 of I
     I_min, I_index = torch.min(I,1)
+    transformer.mainlogger.debug("I_min.shape = %s", I_min.shape)
     transformer.mainlogger.debug("I_min = %s", I_min)
     # Reshape I_min to have original length in dimension 0 and length 1 in dimension 1
     I_min = I_min.reshape(I.shape[0],1)
+    transformer.mainlogger.debug("reshaped I_min.shape = %s", I_min.shape)
     transformer.mainlogger.debug("reshaped I_min = %s", I_min)
     # Set I to be difference between I and I_min
     I = I - I_min
+    transformer.mainlogger.debug("I.shape = %s", I.shape)
     transformer.mainlogger.debug("I = %s", I)
     # Set I_max and I_index to be maximum value in dimension 1 of I
     I_max, I_index = torch.max(I,1)
+    transformer.mainlogger.debug("I_max.shape = %s", I_max.shape)
     transformer.mainlogger.debug("I_max = %s", I_max)
     # Reshape I_max to have original length in dimension 0 and length 1 in dimension 1
     I_max = I_max.reshape(I.shape[0],1)
+    transformer.mainlogger.debug("reshaped I_max.shape = %s", I_max.shape)
     transformer.mainlogger.debug("reshaped I_max = %s", I_max)
     # Manually set which operation is done, whether noise is introduced
     if(0):
         # Update I
-        I = I / (I_max + 1) * (V2 * 0.95)
+        I = I / (I_max + 1) * (V1 * 0.95)
         # Generate randy Tensor of random values with same shape as I; values in range [-0.025, 0.025)
         # Copy to current CUDA device (GPU)
         randy = ((torch.rand(I.shape[0],I.shape[1])-0.5)*0.05).cuda()
@@ -283,15 +294,39 @@ def src_dealwith(img_ori, pattern,V2):
         # Add I_noise to I
         I = I+I_noise
     else:
-        # Update I
-        I = I/(I_max+1)*V2
+        # Set I on a relative scale from 0 to V1 (changed from V2)
+        # URGENT: is this what we want?
+        I = I/(I_max+1)*V1
+        transformer.mainlogger.debug("I.shape = %s", I.shape)
         transformer.mainlogger.debug("I = %s", I)
     # Cast elements of I to int, rounding down
-    # URGENT: This may be where rounding takes place
-    # URGENT: What is the 1D set of bucket signals? I? src? trg?
+    # I is 1D set of bucket signals
     I = I.int()
     transformer.mainlogger.debug("rounded I = %s", I)
     return I
+
+# TODO: Because Python is not pass by reference, these do not work
+# def checkpoint_save(model, optimizer, checkpoint, epoch, loss, saveModelFile):
+#     torch.save({'epoch': epoch, 
+#                 'model_state_dict': model.state_dict(),
+#                 'optimizer_state_dict': optimizer.state_dict(),
+#                 'loss', loss},
+#                 saveModelFile)
+
+# def checkpoint_load(model, optimizer, checkpoint, epoch, loss, mode):
+#     "Load a previously saved model at a given checkpoint."
+#     # Generate model object
+#     # Generate optimizer object
+#     optimizer = torch.optim.Adam(model.parameters(), lr=0.005, betas=(0.9, 0.98), eps=1e-9)
+#     checkpoint = torch.load(path)
+#     model.load_state_dict(checkpoint['model_state_dict'])
+#     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+#     epoch = checkpoint['epoch']
+#     loss = checkpoint['loss']
+#     if mode = 'eval':
+#         model.eval()
+#     elif mode = 'train':
+#         model.train()
 
 
 
@@ -318,7 +353,9 @@ readPatternFile = "./pattern/pink_p5.npy"
 # readModelFile = "/scratch/user/taopeng/REAL_TRUE_white/data/SMILE_Ray_SR15p_0/Modelpara.pth"
 # readModelFile = "./models/test_Modelpara.pth"
 
-saveModelFile = './zmodel/grayscale_model_beta'
+readModelFile = './zmodel/grayscale_model_beta.pth'
+
+saveModelFile = './zmodel/grayscale_model_beta.pth'
 
 # save_name = './result/Noise_Pink_SR2p_0.npy'
 # save_name = './result/Noise_Pink_SR3p_0.npy'
@@ -343,30 +380,40 @@ size_cont = 32
 dim_model = 512
 dim_ff = 2048
 layers = 8
-V1 = 256
+V1 = size_cont * size_cont + 1
 V2 = 256
+mode = 'train'
+# mode = 'eval'
 
-# TODO: Learn what these do
+# Declare data loader
 DataLoaderName = MNIST
+# Set batch size
 batch = 10 #200
+# Set image size
 imsize =[size_cont]
+# Set criterion for network
 criterion = nn.CrossEntropyLoss()
 # Construct blank model with structure
 # URGENT: V1 is src_vocab, identifies size of dictionary of embeddings related to src
 # URGENT: V2 is trg_vocab, identifies size of dictionary of embeddings related to trg
 # URGENT: d_model is dimensionality of model and also size of embedding vector
 model = transformer.make_model(V1, V2,N=6, d_model=dim_model, d_ff=dim_ff, h=layers, dropout=0.1)
+# Construct optimizer
+optimizer = torch.optim.Adam(model.parameters(), lr=0.005, betas=(0.9, 0.98), eps=1e-9)
+# If there is no existing model, prepare a new one
 # Read model file if there is existing one
 # model.load_state_dict(torch.load(readModelFile))#change
 model = model.cuda()
-model_opt = model_train.NoamOpt(model.src_embed[0].d_model, 1, 400,
-                                torch.optim.Adam(model.parameters(), lr=0.005, betas=(0.9, 0.98), eps=1e-9))
-# src_save = np.load(os.path.join(SaveModelFile, 'lab_trg_32_JUly20.npy'))
-src_save = np.ones([10,32,32])*900
-for epoch in range(1000):
+model_opt = model_train.NoamOpt(model.src_embed[0].d_model, 1, 400, optimizer)
+src_save = np.load(os.path.join(saveModelFile, 'lab_trg_32_JUly20.npy'))
+# src_save = np.ones([10,32,32])*900
+# Load readPatternFile and save as pattern
+pattern = np.load(readPatternFile)
+transformer.mainlogger.debug("pattern = %s", pattern)
+for epoch in range(100):
     model.train()
     # model.eval()
     transformer.mainlogger.info("Epoch: %s", epoch + 1)
     start = time.time()
-    src_save = run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V2,src_save)
+    src_save = run_epoch(model,size_cont,pattern,readImageFile,save_name,V1,src_save,batch)
     torch.save(model.state_dict(), saveModelFile)
