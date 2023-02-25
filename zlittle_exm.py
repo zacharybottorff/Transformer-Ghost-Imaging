@@ -127,7 +127,7 @@ def greedy_show(model, src, src_mask, trg, size_cont, src_save, batch_size, loss
         start_symbol = trg[i, 0]
         debug("start_symbol", start_symbol)
         # Set for_show to be the decoded version of model with start symbol
-        for_show = greedy_decode(i, model, src, src_mask, trg, start_symbol, loss)
+        for_show, memory = greedy_decode(i, model, src, src_mask, trg, start_symbol, loss)
         debug("for_show", for_show, shape=True)
         # Set result to be for_show with correct dimensions
         result = for_show.reshape([1,for_show.shape[0]*for_show.shape[1]])
@@ -137,7 +137,7 @@ def greedy_show(model, src, src_mask, trg, size_cont, src_save, batch_size, loss
         # See if loss has been reduced
         loss_raw = abs(src_save[i] - trg[i])
         debug("loss_raw", loss_raw, shape=True)
-        if loss(src_save[i], trg[i]) < loss_raw:
+        if loss(result, trg[i], memory.norm) < loss_raw:
             # If so, update src_save
             src_save[i] = result
             transformer.mainlogger.debug("Updating src_save.")
@@ -185,7 +185,7 @@ def greedy_decode(i, model, src, src_mask, trg, start_symbol, loss):
         # Concatenate (append) next_word Tensor to ys in row dimension
         ys = torch.cat([ys, torch.ones(1, 1, dtype=torch.long).fill_(next_word).cuda()], dim=1)
         debug("ys", ys, shape=True)
-    return ys
+    return ys, memory
         
 
 
