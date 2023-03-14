@@ -15,17 +15,19 @@ class Batch(object):
 
     def __init__(self, src, trg=None, pad=0):
         self.src = src
+        # Set mask to be bool Tensor where src does not equal pad means element is True
+        # Increase dimension by 1
+        # src_mask is intended only to hide padding (which could interfere with 0 value pixels)
         self.src_mask = (src != pad).unsqueeze(-2)
         self.src_mask = self.src_mask.cuda()
         if trg is not None:
-            # URGENT: Rounding may also take place here
             trg = trg.to(int)
             self.trg = trg[:, :-1]
             self.trg_y = trg[:, 1:]
             self.trg_mask = self.make_std_mask(self.trg, pad)
             # TODO: Find out why this was changed
-            # self.ntokens = (self.trg_y != pad).sum().item()
-            self.ntokens = (self.trg_y.shape[1])
+            self.ntokens = (self.trg_y != pad).sum().item()
+            # self.ntokens = (self.trg_y.shape[1])
             # self.ntokens = self.trg_y.shape[1]
     # Set make_std_mask(tgt, pad) a static method, so it can be called even without creating a Batch object
     @staticmethod

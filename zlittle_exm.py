@@ -21,10 +21,10 @@ def info(variable_name, variable, shape=False):
     Output is in the form variable_name = variable
     """
     if shape:
-        transformer.mainlogger.info("%s", (variable_name, ".shape = ", variable.shape))
-        transformer.mainlogger.info("%s", (variable_name, " = ", variable))
+        transformer.mainlogger.info("%s%s%s" % (variable_name, ".shape = ", variable.shape))
+        transformer.mainlogger.info("%s%s%s" % (variable_name, " = ", variable))
     else:
-        transformer.mainlogger.info("%s", (variable_name, " = ", variable))
+        transformer.mainlogger.info("%s%s%s" % (variable_name, " = ", variable))
         
 def debug(variable_name, variable, shape=False):
     """
@@ -32,10 +32,10 @@ def debug(variable_name, variable, shape=False):
     Output is in the form variable_name = variable
     """
     if shape:
-        transformer.mainlogger.debug("%s", (variable_name, ".shape = ", variable.shape))
-        transformer.mainlogger.debug("%s", (variable_name, " = ", variable))
+        transformer.mainlogger.debug("%s%s%s" % (variable_name, ".shape = ", variable.shape))
+        transformer.mainlogger.debug("%s%s%s" % (variable_name, " = ", variable))
     else:
-        transformer.mainlogger.debug("%s", (variable_name, " = ", variable))
+        transformer.mainlogger.debug("%s%s%s" % (variable_name, " = ", variable))
 
 
 
@@ -80,12 +80,13 @@ def src_dealwith(img_ori, pattern, V_src, size_cont):
     # Reshape I_max to have original length in dimension 0 and length 1 in dimension 1
     I_max = I_max.reshape(I.shape[0], 1)
     debug("reshaped I_max", I_max, shape=True)
-    # Set I on a relative scale from 0 to V_src
-    I = I / (I_max + 1) * V_src
-    debug("I", I)
+    # Set I on a relative scale from 0 to 255 * 32 * 32 (in other words, V_src minus 1*32*32)
+    # NOTE: I_max was substituted for (I_max+1)
+    I = I / I_max * (V_src - size_cont*size_cont)
+    debug("I", I, shape=True)
     # Round to integer. I is 1D bucket detector signals
     I = I.int()
-    debug("rounded I", I)
+    debug("rounded I", I, shape=True)
     return I
 
 def trg_dealwith(input_image, size_cont, batch_size):
@@ -101,21 +102,21 @@ def trg_dealwith(input_image, size_cont, batch_size):
     trg_tender = input_image.cuda()
     return trg_tender
 
-def run_epoch(model, size_cont, pattern, input_image, saveName, V_src, src_save, batch_size, loss):
+def run_epoch(model, size_cont, pattern, input_image, saveName, V_src, in_progress, batch_size, loss, batch):
     """
     Standard Training and Logging Function
     """
     transformer.mainlogger.info("Calling run_epoch()")
     start = time.time()
-    src_save = greedy_show(model, batch.src, batch.src_mask, batch.trg, size_cont, src_save, batch_size, loss)
-    debug("src_save", src_save)
-    # Save src_save to file in .npy format
-    np.save(saveName, src_save)
-    return src_save
+    in_progress = greedy_show(model, batch.src, batch.src_mask, batch.trg, size_cont, in_progress, batch_size, loss, V_src)
+    debug("in_progress", in_progress)
+    # Save in_progress to file in .npy format
+    np.save(saveName, in_progress)
+    return in_progress
 
-def greedy_show(model, src, src_mask, trg, size_cont, src_save, batch_size, loss):
+def greedy_show(model, src, src_mask, trg, size_cont, in_progress, batch_size, loss, V_src):
     """
-    Update src_save based on repeated greedy_decode()
+    Update in_progress based on repeated greedy_decode()
     """
     transformer.mainlogger.info("Calling greedy_show()")
     # copy trg into CPU
@@ -125,23 +126,50 @@ def greedy_show(model, src, src_mask, trg, size_cont, src_save, batch_size, loss
         debug("i", i)
         # NOTE: This cheats a little bit by takin the first pixel
         start_symbol = trg[i, 0]
+        debug("trg", trg, shape=True)
         debug("start_symbol", start_symbol)
-        # Set for_show to be the decoded version of model with start symbol
-        for_show, memory = greedy_decode(i, model, src, src_mask, trg, start_symbol, loss)
-        debug("for_show", for_show, shape=True)
-        # Set result to be for_show with correct dimensions
-        result = for_show.reshape([1,for_show.shape[0]*for_show.shape[1]])
-        # Copy result to CPU
-        result = result.cpu()
+        # Set ys to be the decoded version of model with start symbol
+        ys, memory = greedy_decode(i, model, src, src_mask, trg, start_symbol, loss)
+        debug("ys", ys, shape=True)
+        # Set result to be ys with correct dimensions
+        result = ys.reshape([1,ys.shape[0]*ys.shape[1]])
+        # Copy result to CPU, convert to numpy array
+        # result = result.cpu()
+        # result = result.numpy()
         debug("result", result, shape=True)
+        # Set current image of trg to be trg_im
+        trg_im = trg[i]
+        # Convert trg_im to numpy array
+        trg_im = trg_im.numpy()
+        # Make Tensor version of in_progress and copy to GPU
+        progress = torch.from_numpy(in_progress).cuda()
         # See if loss has been reduced
-        loss_raw = abs(src_save[i] - trg[i])
+        # loss_raw = abs(in_progress[i] - trg_im).sum()
+        # Format this element of progress for loss computation
+        prog = torch.zeros(trg.shape(1), V_src)
+        # URGENT: THIS IS WRONG: SEE https://pytorch.org/docs/0.3.0/nn.html?highlight=crossentropyloss#torch.nn.CrossEntropyLoss
+        # prog = progress[i].contiguous().view(-1, progress[i].size(-1)).cuda()
+        debug("prog", prog, shape=True)
+        # Let elements of prog be the guesses for each pixel (denoted by unit vector in dimension corresponding to value). 
+        # Because of greedy decoding, probability distributions are only 1 or 0
+        for k in range(prog.shape[0]):
+            value = ys[k].item()
+            prog[k,value] = 1
+        debug("prog", prog, shape=True)
+        # Format this element of trg for loss computation
+        debug("trg[i]", trg[i], shape=True)
+        trgi = trg[i].long().contiguous().cuda()
+        debug("trgi", trgi, shape=True)
+        loss_raw = loss(prog, trgi).sum().backward().item()
         debug("loss_raw", loss_raw, shape=True)
-        if loss(result, trg[i], memory.norm) < loss_raw:
-            # If so, update src_save
-            src_save[i] = result
-            transformer.mainlogger.debug("Updating src_save.")
-    return src_save
+        new_loss = loss(result.contiguous().view(-1, result.size(-1)),
+                        trgi).sum().backward().item()
+        debug("new_loss", new_loss, shape=True)
+        if torch.abs(new_loss) < torch.abs(loss_raw): #####################
+            # If so, update in_progress
+            in_progress[i] = result
+            transformer.mainlogger.debug("Updating in_progress.")
+    return in_progress
 
 def greedy_decode(i, model, src, src_mask, trg, start_symbol, loss):
     """
@@ -154,7 +182,7 @@ def greedy_decode(i, model, src, src_mask, trg, start_symbol, loss):
     # Update src_mask
     # URGENT: I think the old way of doing this was totally wrong
     debug("src_mask", src_mask, shape=True)
-    src_mask = src_mask[i:i+1,:,:]
+    src_mask = src_mask[i:i+1, :]
     debug("updated src_mask", src_mask, shape=True)
     # Set memory to be the encoded version of model
     memory = model.encode(src, src_mask)
@@ -163,7 +191,7 @@ def greedy_decode(i, model, src, src_mask, trg, start_symbol, loss):
     ys = torch.ones(1, 1, dtype=torch.long).fill_(start_symbol).type_as(src.data).cuda()
     debug("ys", ys, shape=True)
     # Repeat max length - 1 times
-    for j in range(src.shape[1] - 1):
+    for j in range(size_cont*size_cont-1):
         debug("j", j)
         # Set out to be decoded version of model
         out = model.decode(memory, src_mask, model_train.Variable(ys), 
@@ -211,12 +239,12 @@ info("dim_ff", dim_ff)
 # Where d_k is dimension of query/key/value vectors
 layers = 8
 info("layers", layers)
-# Set size of source vocabulary, a dictionary of embeddings related to src
-V_src = 256
-info("V_src", V_src)
 # Set size of target vocabulary, a dictionary of embeddings related to trg
 V_trg = 256
 info("V_trg", V_trg)
+# Set size of source vocabulary, a dictionary of embeddings related to src
+V_src = V_trg * size_cont * size_cont
+info("V_src", V_src)
 # Set training mode
 mode = "train" # "eval"
 info("training mode", mode)
@@ -239,12 +267,14 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.005,
                              betas=(0.9, 0.98), eps=1e-9)
 
 if not old_model:
+    # # Set model parameters to be float
+    # model.float()
     # Move model to GPU
     model.cuda()
     model_opt = model_train.NoamOpt(model.src_embed[0].d_model, 1, 400, optimizer)
-    # Initialize src_save with same shape as input, but all pixels are 900
-    src_save = np.ones([batch_size,size_cont,size_cont])*900
-    debug("src_save", src_save, shape=True)
+    # Initialize in_progress with same number of pixels as input, but all pixels are 900
+    in_progress = np.ones([batch_size,size_cont*size_cont])*900
+    debug("in_progress", in_progress, shape=True)
     if mode == "train":
         # Set training mode
         model.train()
@@ -257,21 +287,27 @@ if not old_model:
     debug("pattern", pattern, shape=True)
     # Set initial src value
     src_tender = src_dealwith(input_image, pattern, V_src, size_cont)
-    debug("src_tender", src_tender)
+    debug("src_tender", src_tender, shape=True)
     # Convert input_image from numpy array to torch Tensor
     input_image = torch.from_numpy(input_image)
     # Set initial trg value
     trg_tender = trg_dealwith(input_image, size_cont, batch_size)
+    debug("trg_tender", trg_tender, shape=True)
+    # Add extra 0 at end of trg (the Batch removes the last entry of dimension 1)
+    trg_tender = torch.cat([trg_tender, torch.ones(10, 1, dtype=torch.long).fill_(0).cuda()], dim=1)
+    debug("expanded trg_tender", trg_tender, shape=True)
     # Initialize a batch
     batch = model_train.Batch(src_tender, trg_tender, pad=-1)
-    debug("batch", batch)
+    # debug("batch", batch)
      
     for epoch in range(500):
         transformer.mainlogger.info("Epoch: %s", epoch + 1)
-        # Construct loss object (this can be changed to model_train.MultiGPULossCompute)
-        loss = transformer.SimpleLossCompute(model.generator, loss_criterion, model_opt)
-        # Modify src_save repeatedly through run_epoch()
-        src_save = run_epoch(model, size_cont, pattern, input_image, saveName, V_src, src_save, batch_size, loss)
+        # # Construct loss object (this can be changed to model_train.MultiGPULossCompute)
+        # loss = transformer.SimpleLossCompute(model.generator, loss_criterion, model_opt)
+        # Simpler version
+        loss = loss_criterion
+        # Modify in_progress repeatedly through run_epoch()
+        in_progress = run_epoch(model, size_cont, pattern, input_image, saveName, V_src, in_progress, batch_size, loss, batch)
     
     
 

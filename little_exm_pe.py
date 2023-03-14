@@ -20,8 +20,11 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save,batch_size):
     # repeat 10 times
     for ijk in range(batch_size):
         transformer.mainlogger.debug("ijk = %s", ijk)
-        # Set for_show to be the decoded version of model with start_symbol=1
-        for_show = greedy_decode(ijk,model, src, src_mask, trg, start_symbol=1)
+        # URGENT: This cheats a little bit by taking the first pixel
+        start_symbol = trg[ijk,0]
+        transformer.mainlogger.debug("start_symbol = %s", start_symbol)
+        # Set for_show to be the decoded version of model with start_symbol
+        for_show = greedy_decode(ijk,model, src, src_mask, trg, start_symbol)
         transformer.mainlogger.debug("for_show = %s", for_show)
         # Set result to be for_show but as a 1 x (d0*d1) Tensor
         # NOTE: One run indicated this changes nothing
@@ -30,50 +33,51 @@ def greedy_show(model, src, src_mask, trg,size_cont,src_save,batch_size):
         # Copy result into CPU memory
         result = result.cpu()
         transformer.mainlogger.debug("result copied to CPU")
-        # Make g a 1x(size_cont^2) Tensor filled with 0s
-        g = torch.zeros(size_cont*size_cont)
-        transformer.mainlogger.debug("initial g = %s", g)
-        transformer.mainlogger.debug("result.squeeze() - 1 = %s", result.squeeze() - 1)
-        # First consider result with dimensions of length 1 removed, making it 1D
-        # Set elements of g given by indices listed in result (minus 1) to be 1
-        g[result.squeeze() - 1] = 1
-        transformer.mainlogger.debug("updated g = %s", g)
-        # Reshape g to be size_cont x size_cont
-        g = g.reshape(size_cont,size_cont)
-        transformer.mainlogger.debug("reshaped g = %s", g)
-        # Make b a 1x(size_cont^2) Tensor filled with 0s
-        b = torch.zeros(size_cont*size_cont)
-        transformer.mainlogger.debug("initial b = %s", b)
-        transformer.mainlogger.debug("trg[ijk,:] - 1 = %s", trg[ijk,:] - 1)
-        # Set elements of b  given by indices listed in trg[ijk,:] (minus 1) to be 1
-        # URGENT: last element of b will always be 1 because of zeroes in trg[ijk,:]
-        b[trg[ijk,:] - 1] = 1
-        transformer.mainlogger.debug("updated b = %s", b)
-        # Reshape b to be size_cont x size_cont
-        b = b.reshape(size_cont,size_cont)
-        transformer.mainlogger.debug("reshaped b = %s", b)
-        # Set first and last elements to 0
-        b[0,0] = 0
-        g[0,0] = 0
-        b[-1,-1] = 0
-        g[-1,-1] = 0
-        transformer.mainlogger.debug("final b = %s", b)
-        transformer.mainlogger.debug("final g = %s", g)
-        # Convert b from Tensor into numpy array (process on CPU)
-        b = b.numpy()
-        # Convert g from Tensor into numpy array (process on CPU)
-        g = g.numpy()
-        # Set loss_raw to the sum of the elements of the absolute value of the difference between element ijk (loop iterator) of src_save and b
-        loss_raw = abs(src_save[ijk]-b).sum()
-        transformer.mainlogger.debug("loss_raw = %s", loss_raw)
-        # Set loss to the sum of the elements of the absolute value of the difference between g and b 
-        loss = abs(g-b).sum()
-        transformer.mainlogger.debug("loss = %s", loss)
-        # If loss < loss_raw, update src_save element ijk to be g
-        if(loss<loss_raw):
-            src_save[ijk] = g
-            transformer.mainlogger.debug("loss < loss_raw, updating src_save")
-            transformer.mainlogger.debug("src_save = %s", src_save)
+        loss = criterion(result, trg)
+        # # Make g a 1x(size_cont^2) Tensor filled with 0s
+        # g = torch.zeros(size_cont*size_cont)
+        # transformer.mainlogger.debug("initial g = %s", g)
+        # transformer.mainlogger.debug("result.squeeze() - 1 = %s", result.squeeze() - 1)
+        # # First consider result with dimensions of length 1 removed, making it 1D
+        # # Set elements of g given by indices listed in result (minus 1) to be 1
+        # g[result.squeeze() - 1] = 1
+        # transformer.mainlogger.debug("updated g = %s", g)
+        # # Reshape g to be size_cont x size_cont
+        # g = g.reshape(size_cont,size_cont)
+        # transformer.mainlogger.debug("reshaped g = %s", g)
+        # # Make b a 1x(size_cont^2) Tensor filled with 0s
+        # b = torch.zeros(size_cont*size_cont)
+        # transformer.mainlogger.debug("initial b = %s", b)
+        # transformer.mainlogger.debug("trg[ijk,:] - 1 = %s", trg[ijk,:] - 1)
+        # # Set elements of b  given by indices listed in trg[ijk,:] (minus 1) to be 1
+        # # URGENT: last element of b will always be 1 because of zeroes in trg[ijk,:]
+        # b[trg[ijk,:] - 1] = 1
+        # transformer.mainlogger.debug("updated b = %s", b)
+        # # Reshape b to be size_cont x size_cont
+        # b = b.reshape(size_cont,size_cont)
+        # transformer.mainlogger.debug("reshaped b = %s", b)
+        # # Set first and last elements to 0
+        # b[0,0] = 0
+        # g[0,0] = 0
+        # b[-1,-1] = 0
+        # g[-1,-1] = 0
+        # transformer.mainlogger.debug("final b = %s", b)
+        # transformer.mainlogger.debug("final g = %s", g)
+        # # Convert b from Tensor into numpy array (process on CPU)
+        # b = b.numpy()
+        # # Convert g from Tensor into numpy array (process on CPU)
+        # g = g.numpy()
+        # # Set loss_raw to the sum of the elements of the absolute value of the difference between element ijk (loop iterator) of src_save and b
+        # loss_raw = abs(src_save[ijk]-b).sum()
+        # transformer.mainlogger.debug("loss_raw = %s", loss_raw)
+        # # Set loss to the sum of the elements of the absolute value of the difference between g and b 
+        # loss = abs(g-b).sum()
+        # transformer.mainlogger.debug("loss = %s", loss)
+        # # If loss < loss_raw, update src_save element ijk to be g
+        # if(loss<loss_raw):
+        #     src_save[ijk] = g
+        #     transformer.mainlogger.debug("loss < loss_raw, updating src_save")
+        #     transformer.mainlogger.debug("src_save = %s", src_save)
     return src_save
 
 def greedy_decode(ijk,model, src, src_mask, trg, start_symbol):
@@ -85,6 +89,8 @@ def greedy_decode(ijk,model, src, src_mask, trg, start_symbol):
     # Change Tensor src to be only the set given by ijk, preserving dimensionality
     src = src[ijk:ijk+1, :]
     transformer.mainlogger.debug("src = %s", src)
+    
+    transformer.mainlogger.warning("src_mask = %s")
     # # Create Tensor of indices of nonzero values of the image of trg given by ijk, preserving dimensionality
     # # Set int max_length to be the length of the first dimension of this Tensor
     # # Effectively, max_length = number of nonzero elements in the selected image of trg
@@ -110,6 +116,7 @@ def greedy_decode(ijk,model, src, src_mask, trg, start_symbol):
         transformer.mainlogger.debug("prob = %s", prob)
         # Set throwaway variable to be Tensor of maximum values in dimension 1 of prob
         # Set next_word to be Tensor of indices of those values
+        # This identifies the most probable value in the src vector, i.e., most likely grayscale value
         _, next_word = torch.max(prob, dim=1)
         # Make next_word into a scalar
         next_word = next_word.item()
@@ -195,10 +202,11 @@ def trg_dealwith(input_image, imsize):
     # return trg_pice_zero
 
 
-def run_epoch(model,size_cont,pattern,readImageFile,save_name,V1,src_save,batch_size):
+def run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V1,src_save,batch_size):
     """
     Standard Training and Logging Function
     """
+    # TODO: URGENT: MUCH OF THIS CAN BE DONE OUTSIDE OF THE LOOP
     transformer.mainlogger.info("Calling run_epoch()")
     # Set image size to 32
     imsize = [32]
@@ -209,9 +217,8 @@ def run_epoch(model,size_cont,pattern,readImageFile,save_name,V1,src_save,batch_
     # Output string "input_image" and the shape stored in input_image
     transformer.mainlogger.info("input_image shape = %s",input_image.shape)
     # Load readPatternFile and save as pattern
-    # NOTE: this is moved outside "run_epoch()"
-    # pattern = np.load(readPatternFile)
-    # transformer.mainlogger.debug("pattern = %s", pattern)
+    pattern = np.load(readPatternFile)
+    transformer.mainlogger.debug("pattern = %s", pattern)
     # Set src_tender to be combination of input_image and pattern
     src_tender = src_dealwith(input_image, pattern,V1)
     transformer.mainlogger.debug("src_tender = %s", src_tender)
@@ -380,6 +387,7 @@ size_cont = 32
 dim_model = 512
 dim_ff = 2048
 layers = 8
+# URGENT: Does V1 have significance beyond efficiency?
 V1 = size_cont * size_cont + 1
 V2 = 256
 mode = 'train'
@@ -405,15 +413,15 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.005, betas=(0.9, 0.98), ep
 # model.load_state_dict(torch.load(readModelFile))#change
 model = model.cuda()
 model_opt = model_train.NoamOpt(model.src_embed[0].d_model, 1, 400, optimizer)
-src_save = np.load(os.path.join(saveModelFile, 'lab_trg_32_JUly20.npy'))
-# src_save = np.ones([10,32,32])*900
-# Load readPatternFile and save as pattern
-pattern = np.load(readPatternFile)
-transformer.mainlogger.debug("pattern = %s", pattern)
+# src_save = np.load(os.path.join(saveModelFile, 'lab_trg_32_JUly20.npy'))
+src_save = np.ones([10,32,32])*900
+# Load readPatternFile and save as pattern (can probably be done outside of run_epoch)
+# pattern = np.load(readPatternFile)
+# transformer.mainlogger.debug("pattern = %s", pattern)
 for epoch in range(100):
     model.train()
     # model.eval()
     transformer.mainlogger.info("Epoch: %s", epoch + 1)
     start = time.time()
-    src_save = run_epoch(model,size_cont,pattern,readImageFile,save_name,V1,src_save,batch)
+    src_save = run_epoch(model,size_cont,readPatternFile,readImageFile,save_name,V1,src_save,batch)
     torch.save(model.state_dict(), saveModelFile)
