@@ -134,41 +134,60 @@ def greedy_show(model, src, src_mask, trg, size_cont, in_progress, batch_size, l
         # Set result to be ys with correct dimensions
         result = ys.reshape([1,ys.shape[0]*ys.shape[1]])
         # Copy result to CPU, convert to numpy array
-        # result = result.cpu()
-        # result = result.numpy()
+        result = result.cpu()
+        result = result.numpy()
         debug("result", result, shape=True)
-        # Set current image of trg to be trg_im
-        trg_im = trg[i]
-        # Convert trg_im to numpy array
-        trg_im = trg_im.numpy()
-        # Make Tensor version of in_progress and copy to GPU
-        progress = torch.from_numpy(in_progress).cuda()
-        # See if loss has been reduced
-        # loss_raw = abs(in_progress[i] - trg_im).sum()
-        # Format this element of progress for loss computation
-        prog = torch.zeros(trg.shape(1), V_src)
-        # URGENT: THIS IS WRONG: SEE https://pytorch.org/docs/0.3.0/nn.html?highlight=crossentropyloss#torch.nn.CrossEntropyLoss
-        # prog = progress[i].contiguous().view(-1, progress[i].size(-1)).cuda()
-        debug("prog", prog, shape=True)
-        # Let elements of prog be the guesses for each pixel (denoted by unit vector in dimension corresponding to value). 
-        # Because of greedy decoding, probability distributions are only 1 or 0
-        for k in range(prog.shape[0]):
-            value = ys[k].item()
-            prog[k,value] = 1
-        debug("prog", prog, shape=True)
-        # Format this element of trg for loss computation
-        debug("trg[i]", trg[i], shape=True)
-        trgi = trg[i].long().contiguous().cuda()
-        debug("trgi", trgi, shape=True)
-        loss_raw = loss(prog, trgi).sum().backward().item()
-        debug("loss_raw", loss_raw, shape=True)
-        new_loss = loss(result.contiguous().view(-1, result.size(-1)),
-                        trgi).sum().backward().item()
-        debug("new_loss", new_loss, shape=True)
-        if torch.abs(new_loss) < torch.abs(loss_raw): #####################
-            # If so, update in_progress
+        
+        # Set numpy version of trg to be trg_num
+        trg_num = trg.numpy()
+        debug("trg_num", trg_num, shape=True)
+        # Set loss (total difference between image pixel values) from most recent epoch to loss_raw
+        loss_old = abs(in_progress[i] - trg_num[i]).sum()
+        debug("loss_old", loss_old, shape=True)
+        # Set loss (total difference between image pixel values) from current epoch to be loss_new
+        loss_new = abs(in_progress[i] - result).sum()
+        debug("loss_new", loss_new, shape=True)
+        # Set the image with the lower loss to be the updated in_progress
+        if loss_new < loss_old:
             in_progress[i] = result
             transformer.mainlogger.debug("Updating in_progress.")
+        
+        # # Set current image of trg to be trg_im
+        # trg_im = trg[i]
+        # # Convert trg_im to numpy array
+        # trg_im = trg_im.numpy()
+        # # Make Tensor version of in_progress and copy to GPU
+        # progress = torch.from_numpy(in_progress).cuda()
+        # # See if loss has been reduced
+        # # loss_raw = abs(in_progress[i] - trg_im).sum()
+        # # Format this element of progress for loss computation
+        # prog = torch.zeros(trg.shape[1], V_src).cuda()
+        # # URGENT: THIS IS WRONG: SEE https://pytorch.org/docs/0.3.0/nn.html?highlight=crossentropyloss#torch.nn.CrossEntropyLoss
+        # # prog = progress[i].contiguous().view(-1, progress[i].size(-1)).cuda()
+        # debug("prog", prog, shape=True)
+        # # Set 1D version of ys to be ys_1d
+        # ys_1d = ys.squeeze()
+        # # Let elements of prog be the guesses for each pixel (denoted by unit vector in dimension corresponding to value). 
+        # # Because of greedy decoding, probability distributions are only 1 or 0
+        # for k in range(prog.shape[0]):
+        #     value = ys_1d[k].item()
+        #     prog[k,value] = 1
+        # debug("prog", prog, shape=True)
+        # # Format this element of trg for loss computation
+        # debug("trg[i]", trg[i], shape=True)
+        # trgi = trg[i].long().contiguous().cuda()
+        # debug("trgi", trgi, shape=True)
+        # loss_raw = loss(prog, trgi).sum().backward().item() #### ABANDON CROSS-ENTROPY LOSS FOR NOW
+        # debug("loss_raw", loss_raw, shape=True)
+        # new_loss = loss(result.contiguous().view(-1, result.size(-1)),
+        #                 trgi).sum().backward().item()
+        # debug("new_loss", new_loss, shape=True)
+        # if torch.abs(new_loss) < torch.abs(loss_raw): #####################
+        #     # If so, update in_progress
+        #     in_progress[i] = result
+        #     transformer.mainlogger.debug("Updating in_progress.")
+        
+        
     return in_progress
 
 def greedy_decode(i, model, src, src_mask, trg, start_symbol, loss):
