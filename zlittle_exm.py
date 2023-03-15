@@ -270,6 +270,9 @@ info("training mode", mode)
 # Set whether continuing from saved model
 old_model = False
 info("old_model", old_model)
+# Set max number of epochs
+max_epoch = 100
+info("max_epoch", max_epoch)
 
 # Set data loader
 Data_loader_name = tvdata.MNIST
@@ -319,8 +322,8 @@ if not old_model:
     batch = model_train.Batch(src_tender, trg_tender, pad=-1)
     # debug("batch", batch)
      
-    for epoch in range(500):
-        transformer.mainlogger.info("Epoch: %s", epoch + 1)
+    for epoch in range(max_epoch):
+        transformer.mainlogger.warning("Epoch: %s", epoch + 1)
         # # Construct loss object (this can be changed to model_train.MultiGPULossCompute)
         # loss = transformer.SimpleLossCompute(model.generator, loss_criterion, model_opt)
         # Simpler version
@@ -333,6 +336,7 @@ if not old_model:
                         'optimizer_state_dict': optimizer.state_dict(),
                         'loss': loss},
                         saveModelFile)
+        np.save(saveName, in_progress)
 else:
     checkpoint = torch.load(readModelFile)
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -369,20 +373,28 @@ else:
     # Initialize a batch
     batch = model_train.Batch(src_tender, trg_tender, pad=-1)
     # debug("batch", batch)
-    while epoch < 500:
-        transformer.mainlogger.info("Epoch: %s", epoch + 1)
+    while epoch < max_epoch:
+        transformer.mainlogger.warning("Epoch: %s", epoch + 1)
         # # Construct loss object (this can be changed to model_train.MultiGPULossCompute)
         # loss = transformer.SimpleLossCompute(model.generator, loss_criterion, model_opt)
         # Simpler version
         loss = loss_criterion
         # Modify in_progress repeatedly through run_epoch()
         in_progress = run_epoch(model, size_cont, pattern, input_image, saveName, V_src, in_progress, batch_size, loss, batch)
+        epoch = epoch + 1
         if mode == "train":
             torch.save({'epoch': epoch,
                         'model_state_dict': model.state_dict(),
                         'optimizer_state_dict': optimizer.state_dict(),
                         'loss': loss},
                         saveModelFile)
-np.save(saveName, in_progress)
-    
 
+epoch = 0
+mode = "eval"
+if mode == "eval":
+    model.eval()
+for epoch in range(max_epoch):
+    transformer.mainlogger.warning("Eval Epoch: %s", epoch + 1)
+    loss = loss_criterion
+    in_progress = run_epoch(model, size_cont, pattern, input_image, saveName, V_src, in_progress, batch_size, loss, batch)
+    np.save(saveName, in_progress)

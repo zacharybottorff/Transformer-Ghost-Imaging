@@ -4,17 +4,17 @@ import logging
 mainlogger = logging.getLogger("mainlogger")
 
 # Change to logging.WARNING to disable logging statements
-debug_level = logging.DEBUG
+debug_level = logging.INFO
 mainlogger.setLevel(debug_level)
 
 # Create file handler
-logfile = "output41.log"
+logfile = "output44.log"
 fh = logging.FileHandler(logfile, mode='w')
 fh.setLevel(debug_level)
 
 # Create console handler
 ch = logging.StreamHandler()
-ch.setLevel(logging.WARNING)
+ch.setLevel(logging.CRITICAL)
 
 # Create formatter
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
