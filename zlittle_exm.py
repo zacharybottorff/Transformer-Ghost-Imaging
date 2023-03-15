@@ -5,6 +5,8 @@
     # Llion Jones, Aidan N. Gomez, Lukasz Kaiser, and Illia Polosukhin
 # And on the Ghost Translation regime by
     # Wenhan Ren, Xiaoyu Nie, Tao Peng, and Marlan O. Scully
+# TODO: Remove dependence on np, except for processing input and output
+# TODO: Use CrossEntropyLoss() and SimpleLossCompute() to compute loss. Preserve computation graph!
 
 import numpy as np
 import torch
@@ -239,9 +241,9 @@ def greedy_decode(i, model, src, src_mask, trg, start_symbol, loss):
 # Set files to be used
 readImageFile = "./image/Smile_image_grayscale.npy"
 readPatternFile = "./pattern/pink_p5.npy"
-readModelFile = "./zmodel/grayscale_model_beta.pth"
-saveModelFile = "./zmodel/grayscale_model_beta.pth"
-saveName = "./zresult/SMILE_Pink_p5_grayscale_pe.npy"
+readModelFile = "./zmodel/grayscale_model_delta.pth"
+saveModelFile = "./zmodel/grayscale_model_delta.pth"
+saveName = "./zresult/SMILE_Pink_p5_grayscale_z.npy"
 
 
 # Model parameters
@@ -397,4 +399,5 @@ for epoch in range(max_epoch):
     transformer.mainlogger.warning("Eval Epoch: %s", epoch + 1)
     loss = loss_criterion
     in_progress = run_epoch(model, size_cont, pattern, input_image, saveName, V_src, in_progress, batch_size, loss, batch)
-    np.save(saveName, in_progress)
+    output = np.reshape(in_progress, (batch_size, size_cont, size_cont))
+    np.save(saveName, output)

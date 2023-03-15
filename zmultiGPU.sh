@@ -2,7 +2,7 @@
 
 ##NECESSARY JOB SPECIFICATIONS
 #SBATCH --job-name=Test_Grayscale_1
-#SBATCH --time=00:02:00                         #Request hr:min:sec
+#SBATCH --time=16:00:00                         #Request hr:min:sec
 #SBATCH --ntasks=1                              #Request 1 task
 #SBATCH --mem=5G                               #Request 2560MB (2.5GB) per node
 #SBATCH --output=UU.%j                          #Send stdout/err to "Example5Out.[jobID]"
