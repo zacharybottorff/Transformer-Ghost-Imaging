@@ -11,7 +11,7 @@ import os
 a = np.load('./image/Smile_image_grayscale.npy') #32,32
 
 # Original images
-b = np.load('./zresult/SMILE_Pink_p5_grayscale_pe.npy')
+b = np.load('./zresult/SMILE_Pink_p5_grayscale_z.npy')
 
 # repeat for 10 images
 for i in range(10):
@@ -23,7 +23,7 @@ for i in range(10):
   # put image i in figure
   # TODO: consider different normalization modes of imshow()
   # NOTE: may need to convert vmax to 1
-  plt.imshow(b[i], cmap='gray', vmin=0, vmax=255)
+  plt.imshow(a[i], cmap='gray', vmin=0, vmax=255)
   # turn off axis
   plt.axis('off')
   
@@ -31,7 +31,7 @@ for i in range(10):
   
   fig.add_subplot(rows, columns, 2)
   
-  plt.imshow(a[i], cmap='gray', vmin=0, vmax=255)
+  plt.imshow(b[i], cmap='gray', vmin=0, vmax=255)
   
   plt.axis('off')
   
