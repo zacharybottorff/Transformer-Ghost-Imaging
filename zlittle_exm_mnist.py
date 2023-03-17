@@ -243,9 +243,9 @@ def greedy_decode(i, model, src, src_mask, trg, start_symbol, loss):
 # Set files to be used
 readImageFile = "./image/Smile_image_grayscale.npy"
 readPatternFile = "./pattern/pink_p5.npy"
-readModelFile = "./zmodel/grayscale_model_delta.pth"
-saveModelFile = "./zmodel/grayscale_model_delta.pth"
-saveName = "./zresult/SMILE_Pink_p5_grayscale_z.npy"
+readModelFile = "./zmodel/grayscale_model_gamma.pth"
+saveModelFile = "./zmodel/grayscale_model_gamma.pth"
+saveName = "./zresult/SMILE_Pink_p5_grayscale_z_mnist.npy"
 
 
 # Model parameters
@@ -291,115 +291,90 @@ model = transformer.make_model(V_src, V_trg, N=6, d_model=dim_model,
 # Construct optimizer
 optimizer = torch.optim.Adam(model.parameters(), lr=0.005, 
                              betas=(0.9, 0.98), eps=1e-9)
+# Select starting point
+start_epoch = 0
+# Set loss
+loss = loss_criterion
 
-if not old_model:
-    # # Set model parameters to be float
-    # model.float()
-    # Move model to GPU
-    model.cuda()
-    model_opt = model_train.NoamOpt(model.src_embed[0].d_model, 1, 400, optimizer)
-    # Initialize in_progress with same number of pixels as input, but all pixels are 900
-    in_progress = np.ones([batch_size,size_cont*size_cont])*900
-    debug("in_progress", in_progress, shape=True)
-    if mode == "train":
-        # Set training mode
-        model.train()
-    
-    # Load images from file
-    input_image = np.load(readImageFile)
-    debug("input_image", input_image, shape=True)
-    # Load patterns from file
-    pattern = np.load(readPatternFile)
-    debug("pattern", pattern, shape=True)
-    # Set initial src value
-    src_tender = src_dealwith(input_image, pattern, V_src, size_cont)
-    debug("src_tender", src_tender, shape=True)
-    # Convert input_image from numpy array to torch Tensor
-    input_image = torch.from_numpy(input_image)
-    # Set initial trg value
-    trg_tender = trg_dealwith(input_image, size_cont, batch_size)
-    debug("trg_tender", trg_tender, shape=True)
-    # Add extra 0 at end of trg (the Batch removes the last entry of dimension 1)
-    trg_tender = torch.cat([trg_tender, torch.ones(10, 1, dtype=torch.long).fill_(0).cuda()], dim=1)
-    debug("expanded trg_tender", trg_tender, shape=True)
-    # Initialize a batch
-    batch = model_train.Batch(src_tender, trg_tender, pad=-1)
-    # debug("batch", batch)
-     
-    for epoch in range(max_epoch):
-        transformer.mainlogger.warning("Epoch: %s", epoch + 1)
-        # # Construct loss object (this can be changed to model_train.MultiGPULossCompute)
-        # loss = transformer.SimpleLossCompute(model.generator, loss_criterion, model_opt)
-        # Simpler version
-        loss = loss_criterion
-        # Modify in_progress repeatedly through run_epoch()
-        in_progress = run_epoch(model, size_cont, pattern, input_image, saveName, V_src, in_progress, batch_size, loss, batch)
-        if mode == "train":
-            torch.save({'epoch': epoch,
-                        'model_state_dict': model.state_dict(),
-                        'optimizer_state_dict': optimizer.state_dict(),
-                        'loss': loss},
-                        saveModelFile)
-        np.save(saveName, in_progress)
-else:
+if old_model:
+    # Load checkpoint from old model
     checkpoint = torch.load(readModelFile)
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    epoch = checkpoint['epoch']
+    start_epoch = checkpoint['epoch']
     loss = checkpoint['loss']
-    
-    model.cuda()
-    model_opt = model_train.NoamOpt(model.src_embed[0].d_model, 1, 400, optimizer)
-    # Initialize in_progress with same number of pixels as input, but all pixels are 900
-    in_progress = np.ones([batch_size,size_cont*size_cont])*900
-    debug("in_progress", in_progress, shape=True)
+
+# Set model parameters to be float
+model.float()
+# Move model to GPU
+model.cuda()
+# Set model optimizer
+model_opt = model_train.NoamOpt(model.src_embed[0].d_model, 1, 400, optimizer)
+# Initialize in_progress with same number of pixels as input, but all pixels are 900
+in_progress = np.ones([batch_size,size_cont*size_cont])*900
+debug("in_progress", in_progress, shape=True)
+# Load pattern from file
+pattern = np.load(readPatternFile)
+debug("pattern", pattern, shape=True)
+for epoch in range(start_epoch, max_epoch):
+    transformer.mainlogger.warning("Epoch: ", epoch + 1)
     if mode == "train":
+        transformer.mainlogger.warning("Training dataset.")
         # Set training mode
         model.train()
-    
-    # Load images from file
-    input_image = np.load(readImageFile)
-    debug("input_image", input_image, shape=True)
-    # Load patterns from file
-    pattern = np.load(readPatternFile)
-    debug("pattern", pattern, shape=True)
-    # Set initial src value
-    src_tender = src_dealwith(input_image, pattern, V_src, size_cont)
-    debug("src_tender", src_tender, shape=True)
-    # Convert input_image from numpy array to torch Tensor
-    input_image = torch.from_numpy(input_image)
-    # Set initial trg value
-    trg_tender = trg_dealwith(input_image, size_cont, batch_size)
-    debug("trg_tender", trg_tender, shape=True)
-    # Add extra 0 at end of trg (the Batch removes the last entry of dimension 1)
-    trg_tender = torch.cat([trg_tender, torch.ones(10, 1, dtype=torch.long).fill_(0).cuda()], dim=1)
-    debug("expanded trg_tender", trg_tender, shape=True)
-    # Initialize a batch
-    batch = model_train.Batch(src_tender, trg_tender, pad=-1)
-    # debug("batch", batch)
-    while epoch < max_epoch:
-        transformer.mainlogger.warning("Epoch: %s", epoch + 1)
-        # # Construct loss object (this can be changed to model_train.MultiGPULossCompute)
-        # loss = transformer.SimpleLossCompute(model.generator, loss_criterion, model_opt)
-        # Simpler version
-        loss = loss_criterion
-        # Modify in_progress repeatedly through run_epoch()
-        in_progress = run_epoch(model, size_cont, pattern, input_image, saveName, V_src, in_progress, batch_size, loss, batch)
-        epoch = epoch + 1
-        if mode == "train":
+        # Iterate through training set
+        for batch_idx, (data, target) in enumerate(gray.train_loader):
+            info("batch_idx", batch_idx)
+            debug("data", data, shape=True)
+            debug("target", target, shape=True)
+            # Remove dimension of length 1 from data
+            data = data.squeeze()
+            debug("squeezed data", data, shape=True)
+            # Set initial optimizer state (does not matter in this implementation)
+            optimizer.zero_grad()
+            # Set initial src value
+            src_tender = src_dealwith(data, pattern, V_src, size_cont)
+            # Set initial trg value
+            trg_tender = trg_dealwith(data, size_cont, batch_size)
+            debug("trg_tender", trg_tender, shape=True)
+            # Add extra 0 at end of trg (the Batch removes the last entry of dimension 1)
+            trg_tender = torch.cat([trg_tender, torch.ones(10, 1, dtype=torch.long).fill_(0).cuda()], dim=1)
+            debug("expanded trg_tender", trg_tender, shape=True)
+            # Initialize a batch
+            batch = model_train.Batch(src_tender, trg_tender, pad=-1)
+            # debug("batch", batch)
+            # Modify in_progress repeatedly through run_epoch()
+            in_progress = run_epoch(model, size_cont, pattern, data, saveName, V_src, in_progress, batch_size, loss, batch)
             torch.save({'epoch': epoch,
-                        'model_state_dict': model.state_dict(),
-                        'optimizer_state_dict': optimizer.state_dict(),
-                        'loss': loss},
-                        saveModelFile)
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'loss': loss},
+                    saveModelFile)
 
-epoch = 0
-mode = "eval"
-if mode == "eval":
+    transformer.mainlogger.warning("Testing dataset.")
+    # Set model to evaluate mode
     model.eval()
-for epoch in range(max_epoch):
-    transformer.mainlogger.warning("Eval Epoch: %s", epoch + 1)
-    loss = loss_criterion
-    in_progress = run_epoch(model, size_cont, pattern, input_image, saveName, V_src, in_progress, batch_size, loss, batch)
-    output = np.reshape(in_progress, (batch_size, size_cont, size_cont))
-    np.save(saveName, output)
+    # Iterate through testing set
+    for data, target in gray.test_loader:
+        debug("data", data, shape=True)
+        debug("target", target, shape=True)
+        # Remove dimension of length 1 from data
+        data = data.squeeze()
+        debug("squeezed data", data, shape=True)
+        # Set initial optimizer state (does not matter in this implementation)
+        optimizer.zero_grad()
+        # Set initial src value
+        src_tender = src_dealwith(data, pattern, V_src, size_cont)
+        # Set initial trg value
+        trg_tender = trg_dealwith(data, size_cont, batch_size)
+        debug("trg_tender", trg_tender, shape=True)
+        # Add extra 0 at end of trg (the Batch removes the last entry of dimension 1)
+        trg_tender = torch.cat([trg_tender, torch.ones(10, 1, dtype=torch.long).fill_(0).cuda()], dim=1)
+        debug("expanded trg_tender", trg_tender, shape=True)
+        # Initialize a batch
+        batch = model_train.Batch(src_tender, trg_tender, pad=-1)
+        # debug("batch", batch)
+        # Modify in_progress repeatedly through run_epoch()
+        in_progress = run_epoch(model, size_cont, pattern, data, saveName, V_src, in_progress, batch_size, loss, batch)
+        output = np.reshape(in_progress, (batch_size, size_cont, size_cont))
+        np.save(saveName, output)
